@@ -29,7 +29,6 @@ CONFIG = {
     "port": int(os.environ.get("PORT", 8000)),
     "secret": os.environ.get("SECRET_KEY", secrets.token_urlsafe(32)),
     "host": os.environ.get("RAILWAY_PUBLIC_DOMAIN", "localhost"),
-    "daily_limit": int(os.environ.get("DAILY_LIMIT_GB", 30)),
 }
 
 app.add_middleware(
@@ -56,7 +55,7 @@ WARNING_CONFIG = """⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
 ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️"""
 
 async def load_state():
-    global LINKS, AUTH, SUBS, DAILY_USAGE
+    global LINKS, AUTH, SUBS
     try:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         if DATA_FILE.exists():
@@ -65,7 +64,6 @@ async def load_state():
             data = json.loads(raw)
             LINKS.update(data.get("links", {}))
             SUBS.update(data.get("subs", {}))
-            DAILY_USAGE.update(data.get("daily_usage", {}))
             if "password_hash" in data:
                 AUTH["password_hash"] = data["password_hash"]
             logger.info(f"State loaded: {len(LINKS)} links, {len(SUBS)} subs")
@@ -79,7 +77,6 @@ async def save_state():
             data = {
                 "links": dict(LINKS),
                 "subs": dict(SUBS),
-                "daily_usage": dict(DAILY_USAGE),
                 "password_hash": AUTH["password_hash"],
                 "saved_at": datetime.now().isoformat(),
             }
@@ -106,10 +103,6 @@ LINKS: dict = {}
 LINKS_LOCK = asyncio.Lock()
 SUBS: dict = {}
 SUBS_LOCK = asyncio.Lock()
-
-DAILY_USAGE: dict = {}
-DAILY_USAGE_LOCK = asyncio.Lock()
-DAILY_LIMIT_BYTES = CONFIG["daily_limit"] * 1024 * 1024 * 1024
 
 device_connections: dict = {}
 DEVICE_CONNECTIONS_LOCK = asyncio.Lock()
@@ -287,27 +280,6 @@ def client_ip(request: Request) -> str:
         return real_ip.strip()
     return request.client.host if request.client else "نامشخص"
 
-# ── بررسی مصرف روزانه ──────────────────────────────────────────────────────────
-async def check_daily_limit(uuid: str, used_bytes: int) -> bool:
-    """بررسی محدودیت روزانه و افزایش مصرف"""
-    today = datetime.now().strftime("%Y-%m-%d")
-    
-    async with DAILY_USAGE_LOCK:
-        # پاک کردن رکوردهای روزهای قبل
-        for key in list(DAILY_USAGE.keys()):
-            if DAILY_USAGE[key].get("date") != today:
-                del DAILY_USAGE[key]
-        
-        if uuid not in DAILY_USAGE:
-            DAILY_USAGE[uuid] = {"date": today, "bytes": 0}
-        
-        # بررسی محدودیت
-        if DAILY_USAGE[uuid]["bytes"] + used_bytes > DAILY_LIMIT_BYTES:
-            return False
-        
-        DAILY_USAGE[uuid]["bytes"] += used_bytes
-        return True
-
 # ── Default link ──────────────────────────────────────────────────────────────
 _default_link_created = False
 
@@ -383,9 +355,24 @@ async def subscription_single(uuid: str):
         </html>
         """, status_code=404)
     
+    # ===== لیست اتصالات زنده برای این کانفیگ =====
+    active_connections_list = [
+        {
+            "ip": c.get("ip", "نامشخص"),
+            "connected_at": c.get("connected_at"),
+            "bytes": c.get("bytes", 0),
+            "transport": c.get("transport", "vless-ws")
+        }
+        for c in connections.values() 
+        if c.get("uuid") == uuid
+    ]
+    active_connections_count = len(active_connections_list)
+    
     link_data = {
         **link,
         "expired": is_link_expired(link),
+        "active_connections": active_connections_count,
+        "active_connections_list": active_connections_list,
         "vless_link": generate_vless_link(
             uuid, 
             get_host(), 
@@ -607,6 +594,21 @@ async def api_change_password(request: Request, _=Depends(require_auth)):
 async def get_stats(_=Depends(require_auth)):
     async with LINKS_LOCK:
         snap = dict(LINKS)
+    
+    # ===== پیدا کردن پر مصرف‌ترین کاربر =====
+    top_user = None
+    top_usage = 0
+    for uid, link in snap.items():
+        used = link.get("used_bytes", 0)
+        if used > top_usage:
+            top_usage = used
+            top_user = {
+                "uuid": uid,
+                "label": link.get("label", "نامشخص"),
+                "used_bytes": used,
+                "used_fmt": fmt_bytes(used)
+            }
+    
     return {
         "active_connections": len(connections),
         "total_traffic_mb": round(stats["total_bytes"] / (1024 ** 2), 2),
@@ -620,7 +622,7 @@ async def get_stats(_=Depends(require_auth)):
         "active_links": sum(1 for l in snap.values() if is_link_allowed(l)),
         "expired_links": sum(1 for l in snap.values() if is_link_expired(l)),
         "subs_count": len(SUBS),
-        "daily_limit_gb": CONFIG["daily_limit"],
+        "top_user": top_user,  # <-- اضافه شد
     }
 
 # ── Activity Logs ─────────────────────────────────────────────────────────────
@@ -705,7 +707,6 @@ async def create_link(request: Request, _=Depends(require_auth)):
     config_password = body.get("password", "").strip()
     password_hash = hash_password(config_password) if config_password else None
     
-    # ===== پورت دلخواه =====
     port = int(body.get("port", 443))
     if port < 1 or port > 65535:
         port = 443
@@ -740,7 +741,6 @@ async def create_link(request: Request, _=Depends(require_auth)):
     log_activity("link", f"کانفیگ «{label}» ساخته شد", "ok")
     host = get_host()
     
-    # ===== ساخت لینک اصلی و کانفیگ الکی =====
     main_link = generate_vless_link(uid, host, remark=f"🦅-{label}", protocol=protocol, fingerprint=fingerprint, port=port)
     warning_link = generate_warning_config()
     
@@ -877,26 +877,12 @@ async def delete_link(uid: str, request: Request, _=Depends(require_auth)):
     return {"ok": True, "deleted": uid}
 
 # ══════════════════════════════════════════════════════════════════════════════
-# VLESS Relay (با محدودیت روزانه)
+# VLESS Relay
 # ══════════════════════════════════════════════════════════════════════════════
 
-async def check_daily_usage_and_use(uid: str, n: int) -> bool:
-    """بررسی محدودیت روزانه و مصرف"""
-    if not await check_daily_limit(uid, n):
-        logger.warning(f"⚠️ Daily limit exceeded for {uid[:8]}…")
-        return False
-    return True
-
-# وصله کردن تابع check_and_use برای پشتیبانی از محدودیت روزانه
-original_check_and_use = None
-
 async def patched_check_and_use(uid: str, n: int) -> bool:
-    """نسخه اصلاح‌شده check_and_use با محدودیت روزانه"""
+    """نسخه اصلاح‌شده بدون محدودیت روزانه"""
     from main import LINKS, LINKS_LOCK, stats, hourly_traffic, now_ir, is_link_allowed
-    
-    # بررسی محدودیت روزانه
-    if not await check_daily_limit(uid, n):
-        return False
     
     async with LINKS_LOCK:
         link = LINKS.get(uid)
@@ -908,17 +894,6 @@ async def patched_check_and_use(uid: str, n: int) -> bool:
         stats["total_bytes"] = stats.get("total_bytes", 0) + n
         hourly_traffic[now_ir().strftime("%H:00")] = hourly_traffic.get(now_ir().strftime("%H:00"), 0) + n
     return True
-
-# جایگزینی تابع check_and_use در relay_vless
-try:
-    from relay_vless import check_and_use as original_check_and_use
-    # تابع جدید با محدودیت روزانه
-except:
-    pass
-
-# ══════════════════════════════════════════════════════════════════════════════
-# VLESS Relay
-# ══════════════════════════════════════════════════════════════════════════════
 
 from relay_vless import (
     RELAY_BUF,
