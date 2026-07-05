@@ -1,4 +1,4 @@
-# pages.py - پنل عقاب (نسخه کامل نهایی با داشبورد جدید)
+# pages.py - پنل عقاب (نسخه کامل با تم سفید/بنفش و رمز کانفیگ)
 
 LOGIN_HTML = r"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -10,48 +10,51 @@ LOGIN_HTML = r"""<!DOCTYPE html>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#06060f;--card:rgba(15,15,35,0.8);--accent:#4F46E5;--accent2:#818CF8;--text:#F0F0FF;--dim:#4A4A6A;--mid:#8A8AAA;--border:rgba(79,70,229,0.2)}
+:root{--bg:#0a0a1a;--card:rgba(20,20,50,0.85);--accent:#8B5CF6;--accent2:#A78BFA;--text:#F0EEFF;--dim:#5A4A7A;--mid:#8A7AAA;--border:rgba(139,92,246,0.2)}
+[data-theme="white"]{--bg:#F0EEFF;--card:rgba(255,255,255,0.85);--accent:#7C3AED;--accent2:#6D28D9;--text:#1A0A2E;--dim:#7A6A9A;--mid:#5A4A7A;--border:rgba(124,58,237,0.2)}
 @keyframes gradientBG{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 html,body{height:100%;overflow:hidden}
-body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#06060f,#0a0a1a,#1a0a2e);background-size:400% 400%;animation:gradientBG 15s ease infinite;display:flex;align-items:center;justify-content:center;padding:20px}
+body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a0a2e,#2a0a4a);background-size:400% 400%;animation:gradientBG 15s ease infinite;display:flex;align-items:center;justify-content:center;padding:20px;transition:background .3s}
+[data-theme="white"] body{background:linear-gradient(135deg,#F0EEFF,#E4E0F5,#D5D0E8)}
 .bg-particles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.particle{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(79,70,229,0.3),transparent);width:4px;height:4px;animation:floatParticle 20s ease-in-out infinite}
+.particle{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,0.3),transparent);width:4px;height:4px;animation:floatParticle 20s ease-in-out infinite}
 @keyframes floatParticle{0%{transform:translateY(100vh) scale(0)}50%{transform:translateY(50vh) scale(1)}100%{transform:translateY(-10vh) scale(0)}}
 .glow-orb{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;animation:orbFloat 10s ease-in-out infinite}
-.orb1{width:400px;height:400px;background:rgba(79,70,229,0.08);top:-150px;right:-100px}
-.orb2{width:300px;height:300px;background:rgba(139,92,246,0.06);bottom:-100px;left:-80px;animation-delay:5s}
-.orb3{width:200px;height:200px;background:rgba(236,72,153,0.04);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:8s}
+.orb1{width:400px;height:400px;background:rgba(139,92,246,0.08);top:-150px;right:-100px}
+.orb2{width:300px;height:300px;background:rgba(236,72,153,0.06);bottom:-100px;left:-80px;animation-delay:5s}
+.orb3{width:200px;height:200px;background:rgba(79,70,229,0.04);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:8s}
 @keyframes orbFloat{0%,100%{transform:translate(0,0)}33%{transform:translate(30px,-30px)}66%{transform:translate(-20px,20px)}}
 .wrap{position:relative;z-index:10;width:100%;max-width:420px}
-.card{background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:1px solid var(--border);border-radius:28px;padding:44px 38px 38px;box-shadow:0 0 60px rgba(79,70,229,0.08),0 25px 70px rgba(0,0,0,0.6);animation:cardIn 0.6s ease}
+.card{background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:1px solid var(--border);border-radius:28px;padding:44px 38px 38px;box-shadow:0 0 60px rgba(139,92,246,0.08),0 25px 70px rgba(0,0,0,0.6);animation:cardIn 0.6s ease;transition:background .3s}
 @keyframes cardIn{from{opacity:0;transform:translateY(30px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 .brand{display:flex;align-items:center;gap:16px;margin-bottom:30px}
-.brand-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#4F46E5,#EC4899);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;box-shadow:0 0 50px rgba(79,70,229,0.2),0 8px 30px rgba(79,70,229,0.15);animation:pulseGlow 3s ease-in-out infinite}
-@keyframes pulseGlow{0%,100%{box-shadow:0 0 50px rgba(79,70,229,0.2)}50%{box-shadow:0 0 80px rgba(79,70,229,0.4)}}
-.brand-name{font-size:20px;font-weight:800;background:linear-gradient(135deg,#818CF8,#EC4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#8B5CF6,#EC4899);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;box-shadow:0 0 50px rgba(139,92,246,0.2),0 8px 30px rgba(139,92,246,0.15)}
+.brand-name{font-size:20px;font-weight:800;background:linear-gradient(135deg,#A78BFA,#EC4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .brand-sub{font-size:11px;color:var(--dim);margin-top:2px;-webkit-text-fill-color:var(--dim)}
 h1{font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px}
 .sub{font-size:12.5px;color:var(--mid);margin-bottom:26px;line-height:1.7}
-.hint{display:flex;align-items:center;gap:10px;background:rgba(79,70,229,0.06);border:1px solid rgba(79,70,229,0.12);border-radius:12px;padding:10px 16px;margin-bottom:22px}
+.hint{display:flex;align-items:center;gap:10px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:12px;padding:10px 16px;margin-bottom:22px}
 .hint-label{font-size:11px;color:var(--dim);flex:1}
-.hint-val{font-family:ui-monospace,monospace;font-size:14px;font-weight:700;color:#818CF8;background:rgba(79,70,229,0.1);border:1px solid rgba(79,70,229,0.2);padding:3px 13px;border-radius:8px;cursor:pointer;transition:.2s}
-.hint-val:hover{background:rgba(79,70,229,0.2);box-shadow:0 0 30px rgba(79,70,229,0.1)}
+.hint-val{font-family:ui-monospace,monospace;font-size:14px;font-weight:700;color:#A78BFA;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);padding:3px 13px;border-radius:8px;cursor:pointer;transition:.2s}
+.hint-val:hover{background:rgba(139,92,246,0.2);box-shadow:0 0 30px rgba(139,92,246,0.1)}
 .field{margin-bottom:20px}
 .field label{display:block;font-size:10.5px;font-weight:600;color:var(--mid);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em}
 .inp-wrap{position:relative}
 input[type=password]{width:100%;padding:14px 48px 14px 18px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:.3s}
-input[type=password]:focus{border-color:rgba(79,70,229,.5);background:rgba(0,0,0,.4);box-shadow:0 0 0 4px rgba(79,70,229,.06),0 0 40px rgba(79,70,229,.03)}
+input[type=password]:focus{border-color:rgba(139,92,246,.5);background:rgba(0,0,0,.4);box-shadow:0 0 0 4px rgba(139,92,246,.06),0 0 40px rgba(139,92,246,.03)}
 .ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:18px;transition:.3s}
-input:focus+.ic{color:#818CF8}
+input:focus+.ic{color:#A78BFA}
 .err{display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#F87171;align-items:center;gap:8px}
 .err.show{display:flex}
-.btn{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#4F46E5,#EC4899);background-size:200% 200%;animation:btnGradient 4s ease infinite;color:#fff;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 30px rgba(79,70,229,.3);transition:all .3s;position:relative;overflow:hidden}
+.btn{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#8B5CF6,#EC4899);background-size:200% 200%;animation:btnGradient 4s ease infinite;color:#fff;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 30px rgba(139,92,246,.3);transition:all .3s;position:relative;overflow:hidden}
 @keyframes btnGradient{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .btn::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.08);opacity:0;transition:.3s}
 .btn:hover::before{opacity:1}
-.btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(79,70,229,.4)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(139,92,246,.4)}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .footer{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;color:var(--dim)}
+.footer button{background:none;border:none;color:var(--accent);cursor:pointer;font-weight:600;font-family:inherit;font-size:11px;display:flex;align-items:center;gap:4px;transition:.3s}
+.footer button:hover{color:#EC4899}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -69,10 +72,14 @@ input:focus+.ic{color:#818CF8}
       <div class="field"><label>رمز عبور</label><div class="inp-wrap"><input type="password" id="pw" placeholder="رمز عبور را وارد کنید" autofocus required><i class="ti ti-lock ic"></i></div></div>
       <button class="btn" type="submit" id="btn"><i class="ti ti-login-2"></i> ورود به پنل</button>
     </form>
-    <div class="footer">🦅 پنل عقاب · v9.2</div>
+    <div class="footer">🦅 پنل عقاب · v9.2 · <button onclick="toggleTheme()"><i class="ti ti-palette"></i> تغییر تم</button></div>
   </div>
 </div>
 <script>
+let currentTheme = localStorage.getItem('eagle-theme') || 'dark';
+function applyTheme(theme){document.documentElement.setAttribute('data-theme',theme);localStorage.setItem('eagle-theme',theme);}
+function toggleTheme(){currentTheme=currentTheme==='dark'?'white':'dark';applyTheme(currentTheme);}
+applyTheme(currentTheme);
 document.getElementById('form').addEventListener('submit',async e=>{
   e.preventDefault();
   const btn=document.getElementById('btn'),err=document.getElementById('err'),et=document.getElementById('err-text');
@@ -101,22 +108,22 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#06060f;--bg2:#0a0a18;--bg3:#12122a;
-  --card:rgba(15,15,35,0.7);--card-b:rgba(79,70,229,0.12);--card-bh:rgba(79,70,229,0.28);
-  --accent:#4F46E5;--accent2:#818CF8;--accent-d:rgba(79,70,229,0.08);
+  --bg:#0a0a1a;--bg2:#12122a;--bg3:#1a1a3a;
+  --card:rgba(20,20,50,0.7);--card-b:rgba(139,92,246,0.12);--card-bh:rgba(139,92,246,0.28);
+  --accent:#8B5CF6;--accent2:#A78BFA;--accent-d:rgba(139,92,246,0.08);
   --green:#10B981;--green-bg:rgba(16,185,129,0.08);--green-t:#34D399;
   --red:#EF4444;--red-bg:rgba(239,68,68,0.08);--red-t:#F87171;
   --amber:#F59E0B;--amber-bg:rgba(245,158,11,0.08);--amber-t:#FCD34D;
   --pink:#EC4899;--pink-bg:rgba(236,72,153,0.08);
   --purple:#8B5CF6;--purple-bg:rgba(139,92,246,0.08);
-  --t1:#F0F0FF;--t2:#8A8AAA;--t3:#4A4A6A;
+  --t1:#F0EEFF;--t2:#8A7AAA;--t3:#5A4A7A;
   --sidebar-w:240px;--radius:16px;
-  --shadow:0 8px 32px rgba(0,0,0,0.4),0 0 60px rgba(79,70,229,0.03);
+  --shadow:0 8px 32px rgba(0,0,0,0.4),0 0 60px rgba(139,92,246,0.03);
 }
-[data-theme="light"]{
-  --bg:#F0F0F8;--bg2:#E4E4F0;--bg3:#D5D5E8;
-  --card:rgba(255,255,255,0.7);--card-b:rgba(79,70,229,0.14);--card-bh:rgba(79,70,229,0.3);
-  --accent:#4F46E5;--accent2:#6366F1;--accent-d:rgba(79,70,229,0.06);
+[data-theme="white"]{
+  --bg:#F0EEFF;--bg2:#E4E0F5;--bg3:#D5D0E8;
+  --card:rgba(255,255,255,0.7);--card-b:rgba(139,92,246,0.14);--card-bh:rgba(139,92,246,0.3);
+  --accent:#7C3AED;--accent2:#6D28D9;--accent-d:rgba(124,58,237,0.06);
   --green:#059669;--green-bg:rgba(5,150,105,0.06);--green-t:#065F46;
   --red:#DC2626;--red-bg:rgba(220,38,38,0.06);--red-t:#991B1B;
   --amber:#D97706;--amber-bg:rgba(217,119,6,0.06);--amber-t:#92400E;
@@ -127,16 +134,17 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 }
 @keyframes bgGradient{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 html,body{height:100%}
-body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#06060f,#0a0a18,#12122a);background-size:300% 300%;animation:bgGradient 20s ease infinite;color:var(--t1);min-height:100vh;display:flex;font-size:14px;transition:background .3s,color .3s}
+body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a0a2e,#2a0a4a);background-size:300% 300%;animation:bgGradient 20s ease infinite;color:var(--t1);min-height:100vh;display:flex;font-size:14px;transition:background .3s,color .3s}
+[data-theme="white"] body{background:linear-gradient(135deg,#F0EEFF,#E4E0F5,#D5D0E8)}
 .glow-orb{position:fixed;border-radius:50%;filter:blur(150px);z-index:0;animation:orbFloat 15s ease-in-out infinite;pointer-events:none}
-.orb1{width:500px;height:500px;background:rgba(79,70,229,0.04);top:-200px;right:-150px}
+.orb1{width:500px;height:500px;background:rgba(139,92,246,0.04);top:-200px;right:-150px}
 .orb2{width:350px;height:350px;background:rgba(236,72,153,0.03);bottom:-120px;left:-100px;animation-delay:7s}
-.orb3{width:250px;height:250px;background:rgba(139,92,246,0.03);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:12s}
+.orb3{width:250px;height:250px;background:rgba(79,70,229,0.03);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:12s}
 @keyframes orbFloat{0%,100%{transform:translate(0,0)}33%{transform:translate(40px,-40px)}66%{transform:translate(-30px,30px)}}
 
 .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-left:1px solid var(--card-b);display:flex;flex-direction:column;flex-shrink:0;position:fixed;right:0;top:0;bottom:0;z-index:200;transition:transform .3s cubic-bezier(.4,0,.2,1),background .3s;box-shadow:var(--shadow)}
 .logo{display:flex;align-items:center;gap:14px;padding:22px 18px 18px;border-bottom:1px solid var(--card-b)}
-.logo-icon{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--pink));display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 0 40px rgba(79,70,229,0.15)}
+.logo-icon{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--pink));display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 0 40px rgba(139,92,246,0.15)}
 .logo-name{font-size:15px;font-weight:800;background:linear-gradient(135deg,var(--accent2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .logo-sub{font-size:9px;color:var(--t3);margin-top:1px;-webkit-text-fill-color:var(--t3)}
 .nav-wrap{flex:1;overflow-y:auto;padding:8px 0}
@@ -144,13 +152,13 @@ body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#06060
 .nav-it i{font-size:16px;width:20px;text-align:center;flex-shrink:0;transition:transform .3s}
 .nav-it:hover{background:var(--accent-d);color:var(--t2)}
 .nav-it:hover i{transform:scale(1.1)}
-.nav-it.on{background:linear-gradient(135deg,var(--accent-d),rgba(236,72,153,0.05));color:var(--t1);border-right-color:var(--accent);font-weight:600;box-shadow:0 0 30px rgba(79,70,229,0.03)}
+.nav-it.on{background:linear-gradient(135deg,var(--accent-d),rgba(236,72,153,0.05));color:var(--t1);border-right-color:var(--accent);font-weight:600;box-shadow:0 0 30px rgba(139,92,246,0.03)}
 .nav-badge{margin-right:auto;background:linear-gradient(135deg,var(--accent),var(--pink));color:#fff;font-size:9px;padding:1px 8px;border-radius:20px;font-weight:700}
 .sb-foot{padding:14px 16px;border-top:1px solid var(--card-b)}
 .theme-btn{display:flex;align-items:center;justify-content:center;gap:7px;background:var(--accent-d);color:var(--t2);border-radius:10px;padding:8px;font-size:11px;font-weight:500;font-family:inherit;border:1px solid var(--card-b);cursor:pointer;width:100%;transition:.2s;margin-bottom:7px}
 .theme-btn:hover{background:var(--card-b);color:var(--t1)}
-.support-btn{display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#0098e6,#0077bb);color:#fff;border-radius:10px;padding:8px;font-size:12px;font-weight:600;font-family:inherit;border:none;cursor:pointer;width:100%;transition:.2s;margin-bottom:7px;box-shadow:0 4px 15px rgba(0,152,230,0.2)}
-.support-btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,152,230,0.3)}
+.support-btn{display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;border-radius:10px;padding:8px;font-size:12px;font-weight:600;font-family:inherit;border:none;cursor:pointer;width:100%;transition:.2s;margin-bottom:7px;box-shadow:0 4px 15px rgba(139,92,246,0.2)}
+.support-btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(139,92,246,0.3)}
 .logout-btn{display:flex;align-items:center;justify-content:center;gap:7px;background:var(--red-bg);color:var(--red-t);border-radius:10px;padding:8px;font-size:12px;font-weight:500;font-family:inherit;border:1px solid rgba(239,68,68,0.2);cursor:pointer;width:100%;transition:.2s}
 .logout-btn:hover{background:rgba(239,68,68,0.2)}
 .mob-top{display:none;position:fixed;top:0;right:0;left:0;height:56px;background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-bottom:1px solid var(--card-b);z-index:150;align-items:center;justify-content:space-between;padding:0 14px}
@@ -182,7 +190,6 @@ body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#06060
 .pulse{animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 
-/* ===== کارت‌های آماری جدید ===== */
 .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
 .stat-card{background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--card-b);border-radius:var(--radius);padding:18px 16px;transition:all .3s;text-align:center;position:relative;overflow:hidden}
 .stat-card:hover{border-color:var(--card-bh);transform:translateY(-3px);box-shadow:var(--shadow)}
@@ -193,10 +200,9 @@ body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#06060
 .stat-card .bar{position:absolute;bottom:0;right:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--pink));opacity:0;transition:.3s}
 .stat-card:hover .bar{opacity:1}
 
-/* ===== کاربران ===== */
 .user-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
 .user-card{background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--card-b);border-radius:var(--radius);padding:18px 20px;transition:all .3s;box-shadow:var(--shadow);position:relative;overflow:hidden}
-.user-card::before{content:'';position:absolute;top:-50%;right:-50%;width:200px;height:200px;background:radial-gradient(circle,rgba(79,70,229,0.03),transparent 70%);pointer-events:none}
+.user-card::before{content:'';position:absolute;top:-50%;right:-50%;width:200px;height:200px;background:radial-gradient(circle,rgba(139,92,246,0.03),transparent 70%);pointer-events:none}
 .user-card:hover{border-color:var(--card-bh);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.3)}
 .user-card .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .user-card .name{font-size:14px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:6px}
@@ -210,16 +216,17 @@ body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#06060
 .user-card .quota-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--pink));transition:width .6s ease}
 .user-card .actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
 .user-card .actions .btn{flex:1;justify-content:center;min-width:fit-content;font-size:10px}
+.user-card .lock-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;color:var(--amber-t);background:var(--amber-bg);padding:2px 8px;border-radius:10px;border:1px solid rgba(245,158,11,0.15)}
 
 .empty{text-align:center;padding:50px 20px;color:var(--t3)}
 .empty i{font-size:38px;opacity:.3;display:block;margin-bottom:12px}
 
 .btn{font-family:inherit;font-size:11.5px;font-weight:600;border-radius:10px;padding:8px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:none;transition:all .2s;white-space:nowrap}
 .btn i{font-size:13px}
-.btn-p{background:linear-gradient(135deg,var(--accent),var(--pink));color:#fff;box-shadow:0 4px 20px rgba(79,70,229,.2)}
-.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(79,70,229,.35)}
+.btn-p{background:linear-gradient(135deg,var(--accent),var(--pink));color:#fff;box-shadow:0 4px 20px rgba(139,92,246,.2)}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(139,92,246,.35)}
 .btn-o{background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--card-b);color:var(--t2)}
-.btn-o:hover{background:var(--accent-d);border-color:rgba(79,70,229,.2)}
+.btn-o:hover{background:var(--accent-d);border-color:rgba(139,92,246,.2)}
 .btn-d{background:var(--red-bg);color:var(--red-t);border:1px solid rgba(239,68,68,.2)}
 .btn-d:hover{background:rgba(239,68,68,.2)}
 .btn-pur{background:var(--purple-bg);color:#A78BFA;border:1px solid rgba(139,92,246,.2)}
@@ -227,6 +234,7 @@ body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#06060
 .btn-amber{background:var(--amber-bg);color:var(--amber-t);border:1px solid rgba(245,158,11,0.2)}
 .btn-amber:hover{background:rgba(245,158,11,0.22)}
 .btn-sm{padding:5px 10px;font-size:10px;border-radius:8px}
+.btn-icon{width:30px;height:30px;padding:0;justify-content:center;border-radius:8px}
 
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(50px);background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:1px solid var(--card-b);color:var(--t1);border-radius:12px;padding:12px 22px;font-size:12.5px;opacity:0;transition:all .3s;z-index:999;pointer-events:none;box-shadow:var(--shadow);white-space:nowrap;display:flex;align-items:center;gap:8px}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -235,7 +243,7 @@ body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#06060
 
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
 .modal-bg.open{display:flex}
-.modal{background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:1px solid var(--card-b);border-radius:20px;padding:30px 28px;max-width:520px;width:calc(100% - 32px);max-height:90vh;overflow-y:auto;position:relative;animation:pageIn .3s ease;box-shadow:var(--shadow)}
+.modal{background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:1px solid var(--card-b);border-radius:20px;padding:30px 28px;max-width:540px;width:calc(100% - 32px);max-height:90vh;overflow-y:auto;position:relative;animation:pageIn .3s ease;box-shadow:var(--shadow)}
 .modal-close{position:absolute;top:14px;left:14px;background:var(--accent-d);border:1px solid var(--card-b);color:var(--t2);width:32px;height:32px;border-radius:9px;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;transition:.2s}
 .modal-close:hover{background:var(--red-bg);color:var(--red-t);transform:rotate(90deg)}
 .modal-title{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:20px;display:flex;align-items:center;gap:8px}
@@ -243,7 +251,7 @@ body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#06060
 .fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
 .fg label{font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:4px}
 .fi{width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--card-b);background:rgba(0,0,0,.2);color:var(--t1);font-family:inherit;font-size:12px;outline:none;transition:.2s}
-.fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.08);background:rgba(0,0,0,.3)}
+.fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,92,246,.08);background:rgba(0,0,0,.3)}
 .fi::placeholder{color:var(--t3)}
 select.fi{appearance:none;cursor:pointer}
 
@@ -277,18 +285,100 @@ select.fi{appearance:none;cursor:pointer}
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-user')"><i class="ti ti-x"></i></button>
     <div class="modal-title"><i class="ti ti-user-plus"></i> 🦅 ساخت کانفیگ جدید</div>
+    
     <div class="fg"><label><i class="ti ti-tag"></i> نام کاربری</label><input class="fi" id="user-label" placeholder="مثلاً: کاربر علی"></div>
+    
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
       <div class="fg"><label><i class="ti ti-database"></i> حجم</label><input class="fi" id="user-quota" type="number" min="0.5" step="0.5" value="2"></div>
       <div class="fg"><label><i class="ti ti-ruler"></i> واحد</label><select class="fi" id="user-unit"><option value="GB">GB</option><option value="MB">MB</option></select></div>
       <div class="fg"><label><i class="ti ti-calendar"></i> انقضا (روز)</label><input class="fi" id="user-exp" type="number" min="0" value="30" placeholder="0=نامحدود"></div>
     </div>
+    
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="fg"><label><i class="ti ti-fingerprint"></i> فینگرپرینت</label><select class="fi" id="user-fingerprint"><option value="chrome">Chrome</option><option value="firefox">Firefox</option><option value="safari">Safari</option><option value="edge">Edge</option><option value="random">Random</option><option value="none">None</option></select></div>
       <div class="fg"><label><i class="ti ti-devices"></i> محدودیت دستگاه</label><input class="fi" id="user-devices" type="number" min="0" max="10" value="1" placeholder="0=نامحدود"></div>
     </div>
+    
     <div class="fg"><label><i class="ti ti-settings"></i> پروتکل</label><select class="fi" id="user-protocol"><option value="vless-ws">VLESS (WebSocket)</option><option value="xhttp-stream-up">XHTTP (Stream)</option></select></div>
-    <div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-p" onclick="saveUser()" style="flex:2"><i class="ti ti-check"></i> ساخت کانفیگ</button><button class="btn btn-o" onclick="closeModal('modal-user')" style="flex:1">انصراف</button></div>
+    
+    <!-- ===== رمز محافظت از کانفیگ ===== -->
+    <div class="fg">
+      <label><i class="ti ti-lock"></i> رمز کانفیگ (اختیاری)</label>
+      <input class="fi" id="user-password" type="password" placeholder="برای حذف/ویرایش نیاز است" dir="ltr">
+      <span style="font-size:9px;color:var(--t3);margin-top:2px">💡 اگر رمز بذاری، برای حذف یا ویرایش این کانفیگ نیاز به وارد کردن رمز داری</span>
+    </div>
+    
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-p" onclick="saveUser()" style="flex:2"><i class="ti ti-check"></i> ساخت کانفیگ</button>
+      <button class="btn btn-o" onclick="closeModal('modal-user')" style="flex:1">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== مودال ویرایش کانفیگ ===== -->
+<div class="modal-bg" id="modal-edit">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-edit')"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-edit"></i> 🦅 ویرایش کانفیگ</div>
+    <input type="hidden" id="edit-uuid">
+    
+    <!-- ===== ورود رمز برای ویرایش ===== -->
+    <div class="fg" id="edit-password-section">
+      <label><i class="ti ti-lock"></i> 🔑 رمز کانفیگ (برای ویرایش لازم است)</label>
+      <input class="fi" id="edit-password" type="password" placeholder="رمز کانفیگ را وارد کنید" dir="ltr">
+      <span style="font-size:9px;color:var(--t3);margin-top:2px">⚠️ اگر کانفیگ رمز دارد، برای ویرایش باید رمز را وارد کنید</span>
+    </div>
+    
+    <div class="fg"><label><i class="ti ti-tag"></i> نام کاربری</label><input class="fi" id="edit-label" placeholder="نام کاربری"></div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="fg"><label><i class="ti ti-database"></i> حجم (0=نامحدود)</label><input class="fi" id="edit-quota" type="number" min="0" step="0.5"></div>
+      <div class="fg"><label><i class="ti ti-ruler"></i> واحد</label><select class="fi" id="edit-unit"><option value="GB">GB</option><option value="MB">MB</option></select></div>
+      <div class="fg"><label><i class="ti ti-calendar"></i> انقضا (روز)</label><input class="fi" id="edit-exp" type="number" min="0" placeholder="0=نامحدود"></div>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg"><label><i class="ti ti-fingerprint"></i> فینگرپرینت</label><select class="fi" id="edit-fingerprint"><option value="chrome">Chrome</option><option value="firefox">Firefox</option><option value="safari">Safari</option><option value="edge">Edge</option><option value="random">Random</option><option value="none">None</option></select></div>
+      <div class="fg"><label><i class="ti ti-devices"></i> محدودیت دستگاه</label><input class="fi" id="edit-devices" type="number" min="0" max="10" placeholder="0=نامحدود"></div>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg"><label><i class="ti ti-settings"></i> پروتکل</label>
+        <select class="fi" id="edit-protocol">
+          <option value="vless-ws">VLESS (WebSocket)</option>
+          <option value="xhttp-stream-up">XHTTP (Stream)</option>
+        </select>
+      </div>
+      <div class="fg"><label><i class="ti ti-toggle-left"></i> وضعیت</label>
+        <select class="fi" id="edit-status">
+          <option value="true">✅ فعال</option>
+          <option value="false">❌ غیرفعال</option>
+        </select>
+      </div>
+    </div>
+    
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-p" onclick="saveEdit()" style="flex:2"><i class="ti ti-check"></i> ذخیره تغییرات</button>
+      <button class="btn btn-o" onclick="closeModal('modal-edit')" style="flex:1">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== مودال حذف با رمز ===== -->
+<div class="modal-bg" id="modal-delete">
+  <div class="modal" style="max-width:400px">
+    <button class="modal-close" onclick="closeModal('modal-delete')"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-trash"></i> 🦅 حذف کانفیگ</div>
+    <input type="hidden" id="delete-uuid">
+    <p style="font-size:13px;color:var(--t2);margin-bottom:16px">برای حذف این کانفیگ، رمز آن را وارد کنید.</p>
+    <div class="fg">
+      <label><i class="ti ti-lock"></i> رمز کانفیگ</label>
+      <input class="fi" id="delete-password" type="password" placeholder="رمز کانفیگ را وارد کنید" dir="ltr">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-d" onclick="confirmDelete()" style="flex:2"><i class="ti ti-trash"></i> حذف</button>
+      <button class="btn btn-o" onclick="closeModal('modal-delete')" style="flex:1">انصراف</button>
+    </div>
   </div>
 </div>
 
@@ -309,7 +399,7 @@ select.fi{appearance:none;cursor:pointer}
   </div>
   <div class="sb-foot">
     <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-palette" id="theme-icon"></i> <span id="theme-label">تغییر تم</span></button>
-    <a href="https://t.me/+QyEVU0FquFczYjQ0" target="_blank" class="support-btn"><i class="ti ti-brand-telegram"></i> گروه پشتیبانی</a>
+    <button class="support-btn" onclick="window.open('https://t.me/+QyEVU0FquFczYjQ0','_blank')"><i class="ti ti-brand-telegram"></i> گروه پشتیبانی</button>
     <button class="logout-btn" onclick="logout()"><i class="ti ti-logout"></i> خروج</button>
   </div>
 </aside>
@@ -328,49 +418,15 @@ select.fi{appearance:none;cursor:pointer}
     </div>
   </div>
 
-  <!-- ===== کارت‌های آماری ===== -->
   <div class="stats-grid">
-    <div class="stat-card green">
-      <span class="icon">🟢</span>
-      <div class="number" id="online-count">۰</div>
-      <div class="label">سرویس‌های آنلاین</div>
-      <div class="sub">در حال اتصال</div>
-      <div class="bar"></div>
-    </div>
-    <div class="stat-card blue">
-      <span class="icon">👥</span>
-      <div class="number" id="total-users">۰</div>
-      <div class="label">کل کاربران</div>
-      <div class="sub">ثبت‌شده</div>
-      <div class="bar"></div>
-    </div>
-    <div class="stat-card purple">
-      <span class="icon">📊</span>
-      <div class="number" id="total-usage">۰</div>
-      <div class="label">مصرف کل</div>
-      <div class="sub">مگابایت</div>
-      <div class="bar"></div>
-    </div>
-    <div class="stat-card pink">
-      <span class="icon">📱</span>
-      <div class="number" id="active-devices">۰</div>
-      <div class="label">دستگاه‌های فعال</div>
-      <div class="sub">متصل</div>
-      <div class="bar"></div>
-    </div>
-    <div class="stat-card amber">
-      <span class="icon">⛔</span>
-      <div class="number" id="inactive-count">۰</div>
-      <div class="label">غیرفعال</div>
-      <div class="sub">غیرفعال</div>
-      <div class="bar"></div>
-    </div>
+    <div class="stat-card green"><span class="icon">🟢</span><div class="number" id="online-count">۰</div><div class="label">سرویس‌های آنلاین</div><div class="sub">در حال اتصال</div><div class="bar"></div></div>
+    <div class="stat-card blue"><span class="icon">👥</span><div class="number" id="total-users">۰</div><div class="label">کل کاربران</div><div class="sub">ثبت‌شده</div><div class="bar"></div></div>
+    <div class="stat-card purple"><span class="icon">📊</span><div class="number" id="total-usage">۰</div><div class="label">مصرف کل</div><div class="sub">مگابایت</div><div class="bar"></div></div>
+    <div class="stat-card pink"><span class="icon">📱</span><div class="number" id="active-devices">۰</div><div class="label">دستگاه‌های فعال</div><div class="sub">متصل</div><div class="bar"></div></div>
+    <div class="stat-card amber"><span class="icon">⛔</span><div class="number" id="inactive-count">۰</div><div class="label">غیرفعال</div><div class="sub">غیرفعال</div><div class="bar"></div></div>
   </div>
 
-  <!-- ===== لیست کاربران ===== -->
-  <div id="users-grid" class="user-grid">
-    <div class="empty"><i class="ti ti-users"></i><p>هیچ کاربری ساخته نشده</p></div>
-  </div>
+  <div id="users-grid" class="user-grid"><div class="empty"><i class="ti ti-users"></i><p>هیچ کاربری ساخته نشده</p></div></div>
 </section>
 
 <section class="pg" id="pg-connections">
@@ -378,23 +434,14 @@ select.fi{appearance:none;cursor:pointer}
   <div id="conns-grid" class="conn-grid"><div class="empty"><i class="ti ti-plug-off"></i><p>هیچ اتصال فعالی وجود ندارد</p></div></div>
 </section>
 
-<!-- ===== بخش پشتیبانی ===== -->
 <section class="pg" id="pg-support">
   <div class="topbar"><div><div class="tb-title"><i class="ti ti-headset"></i> پشتیبانی</div><div class="tb-sub">راهنمایی و پشتیبانی سریع</div></div></div>
   <div class="card" style="max-width:600px">
     <div class="card-title"><i class="ti ti-messages"></i> ارتباط با پشتیبانی</div>
-    <p style="font-size:13px;color:var(--t2);line-height:1.9;margin-bottom:16px">
-      برای دریافت راهنمایی، پشتیبانی و پاسخ به سوالات خود، به گروه تلگرامی ما بپیوندید.
-    </p>
+    <p style="font-size:13px;color:var(--t2);line-height:1.9;margin-bottom:16px">برای دریافت راهنمایی، پشتیبانی و پاسخ به سوالات خود، به گروه تلگرامی ما بپیوندید.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <a href="https://t.me/+QyEVU0FquFczYjQ0" target="_blank" style="flex:1;text-decoration:none">
-        <button class="btn btn-p" style="width:100%;justify-content:center;background:linear-gradient(135deg,#0098e6,#0077bb);box-shadow:0 4px 20px rgba(0,152,230,0.25)">
-          <i class="ti ti-brand-telegram"></i> عضویت در گروه پشتیبانی
-        </button>
-      </a>
-      <button class="btn btn-o" onclick="navigator.clipboard.writeText('https://t.me/+QyEVU0FquFczYjQ0').then(()=>toast('لینک گروه کپی شد ✓','ok'))">
-        <i class="ti ti-copy"></i> کپی لینک
-      </button>
+      <button class="btn btn-p" onclick="window.open('https://t.me/+QyEVU0FquFczYjQ0','_blank')" style="flex:2;background:linear-gradient(135deg,#0098e6,#0077bb);box-shadow:0 4px 20px rgba(0,152,230,0.25)"><i class="ti ti-brand-telegram"></i> عضویت در گروه پشتیبانی</button>
+      <button class="btn btn-o" onclick="navigator.clipboard.writeText('https://t.me/+QyEVU0FquFczYjQ0').then(()=>toast('لینک گروه کپی شد ✓','ok'))"><i class="ti ti-copy"></i> کپی لینک</button>
     </div>
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--card-b);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span class="badge bg-green"><span class="dot dg"></span> آنلاین</span>
@@ -402,14 +449,11 @@ select.fi{appearance:none;cursor:pointer}
     </div>
   </div>
 </section>
-
 </main>
 
 <script>
 // ===== تنظیمات تم =====
-const THEMES = ['dark', 'light'];
 let currentTheme = localStorage.getItem('eagle-theme') || 'dark';
-
 function applyTheme(theme) {
   currentTheme = theme;
   localStorage.setItem('eagle-theme', theme);
@@ -419,14 +463,12 @@ function applyTheme(theme) {
   const label = document.getElementById('theme-label');
   icon.className = 'ti ' + (theme === 'dark' ? 'ti-moon' : 'ti-sun');
   if (mobIcon) mobIcon.className = 'ti ' + (theme === 'dark' ? 'ti-moon' : 'ti-sun');
-  label.textContent = theme === 'dark' ? 'تم تاریک' : 'تم روشن';
+  label.textContent = theme === 'dark' ? 'تم بنفش تیره' : 'تم سفید';
 }
-
 function toggleTheme() {
-  const next = currentTheme === 'dark' ? 'light' : 'dark';
+  const next = currentTheme === 'dark' ? 'white' : 'dark';
   applyTheme(next);
 }
-
 applyTheme(currentTheme);
 
 // ===== توابع کمکی =====
@@ -517,10 +559,11 @@ async function loadUsers() {
       const devices = l.max_devices || 0;
       const fp = l.fingerprint || 'chrome';
       const subLink = `https://${host}/sub/${l.uuid}`;
+      const hasPassword = l.has_password === true;
       
       return `<div class="user-card">
         <div class="head">
-          <div class="name">🦅 ${esc(l.label)}</div>
+          <div class="name">🦅 ${esc(l.label)} ${hasPassword ? '<span class="lock-badge"><i class="ti ti-lock"></i> رمزدار</span>' : ''}</div>
           <span class="status ${active ? 'on' : 'off'}">${active ? '🟢 آنلاین' : '🔴 آفلاین'}</span>
         </div>
         <div class="uuid">🔑 ${esc(l.uuid)}</div>
@@ -540,11 +583,145 @@ async function loadUsers() {
           <button class="btn btn-sm btn-o" onclick="navigator.clipboard.writeText('${esc(l.vless_link)}').then(()=>toast('لینک کپی شد','ok'))"><i class="ti ti-copy"></i> لینک</button>
           <button class="btn btn-sm btn-pur" onclick="navigator.clipboard.writeText('${esc(subLink)}').then(()=>toast('ساب‌لینک کپی شد','ok'))"><i class="ti ti-link"></i> ساب</button>
           <button class="btn btn-sm btn-amber" onclick="resetUsage('${l.uuid}')"><i class="ti ti-rotate"></i> ریست</button>
-          <button class="btn btn-sm btn-d" onclick="deleteUser('${l.uuid}')"><i class="ti ti-trash"></i> حذف</button>
+          <button class="btn btn-sm btn-pur btn-icon" onclick="openEditModal('${l.uuid}')" title="ویرایش"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-sm btn-d" onclick="openDeleteModal('${l.uuid}')"><i class="ti ti-trash"></i></button>
         </div>
       </div>`;
     }).join('');
   } catch(e) { console.error(e); }
+}
+
+// ===== باز کردن مودال ویرایش =====
+async function openEditModal(uuid) {
+    try {
+        const r = await authF('/api/links');
+        const { links=[] } = await r.json();
+        const link = links.find(l => l.uuid === uuid);
+        
+        if (!link) {
+            toast('کاربر یافت نشد', 'err');
+            return;
+        }
+        
+        document.getElementById('edit-uuid').value = uuid;
+        document.getElementById('edit-label').value = link.label || '';
+        document.getElementById('edit-password').value = '';
+        
+        if (link.limit_bytes === 0) {
+            document.getElementById('edit-quota').value = '';
+        } else {
+            document.getElementById('edit-quota').value = (link.limit_bytes / (1024**3)).toFixed(1);
+        }
+        document.getElementById('edit-unit').value = 'GB';
+        
+        if (link.expires_at) {
+            const days = Math.ceil((new Date(link.expires_at) - new Date()) / (1000 * 60 * 60 * 24));
+            document.getElementById('edit-exp').value = days > 0 ? days : 0;
+        } else {
+            document.getElementById('edit-exp').value = '';
+        }
+        
+        document.getElementById('edit-fingerprint').value = link.fingerprint || 'chrome';
+        document.getElementById('edit-devices').value = link.max_devices || 0;
+        document.getElementById('edit-protocol').value = link.protocol || 'vless-ws';
+        document.getElementById('edit-status').value = link.active ? 'true' : 'false';
+        
+        // اگر کانفیگ رمز دارد، بخش رمز رو نشون بده
+        if (link.has_password) {
+            document.getElementById('edit-password-section').style.display = 'block';
+        } else {
+            document.getElementById('edit-password-section').style.display = 'none';
+        }
+        
+        openModal('modal-edit');
+    } catch(e) {
+        toast('خطا در بارگذاری', 'err');
+    }
+}
+
+// ===== ذخیره ویرایش =====
+async function saveEdit() {
+    const uuid = document.getElementById('edit-uuid').value;
+    const password = document.getElementById('edit-password').value.trim();
+    const label = document.getElementById('edit-label').value.trim() || 'کاربر';
+    const quota = parseFloat(document.getElementById('edit-quota').value) || 0;
+    const unit = document.getElementById('edit-unit').value || 'GB';
+    const exp = parseInt(document.getElementById('edit-exp').value) || 0;
+    const fingerprint = document.getElementById('edit-fingerprint').value || 'chrome';
+    const devices = parseInt(document.getElementById('edit-devices').value) || 0;
+    const protocol = document.getElementById('edit-protocol').value || 'vless-ws';
+    const active = document.getElementById('edit-status').value === 'true';
+    
+    try {
+        const r = await authF('/api/links/' + uuid, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                label: label,
+                limit_value: quota,
+                limit_unit: unit,
+                expires_days: exp,
+                fingerprint: fingerprint,
+                max_devices: devices,
+                protocol: protocol,
+                active: active,
+                password: password
+            })
+        });
+        
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            if (r.status === 403) {
+                toast('❌ رمز کانفیگ اشتباه است!', 'err');
+            } else {
+                throw new Error(err.detail || 'خطا');
+            }
+            return;
+        }
+        
+        closeModal('modal-edit');
+        toast('🦅 کانفیگ ویرایش شد ✓', 'ok');
+        loadUsers();
+    } catch(e) {
+        toast('خطا در ویرایش: ' + e.message, 'err');
+    }
+}
+
+// ===== باز کردن مودال حذف =====
+function openDeleteModal(uuid) {
+    document.getElementById('delete-uuid').value = uuid;
+    document.getElementById('delete-password').value = '';
+    openModal('modal-delete');
+}
+
+// ===== تایید حذف با رمز =====
+async function confirmDelete() {
+    const uuid = document.getElementById('delete-uuid').value;
+    const password = document.getElementById('delete-password').value.trim();
+    
+    try {
+        const r = await authF('/api/links/' + uuid, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
+        });
+        
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            if (r.status === 403) {
+                toast('❌ رمز کانفیگ اشتباه است!', 'err');
+            } else {
+                throw new Error(err.detail || 'خطا');
+            }
+            return;
+        }
+        
+        closeModal('modal-delete');
+        toast('🦅 کاربر حذف شد', 'ok');
+        loadUsers();
+    } catch(e) {
+        toast('خطا در حذف: ' + e.message, 'err');
+    }
 }
 
 // ===== ساخت کانفیگ جدید =====
@@ -556,6 +733,7 @@ async function saveUser() {
   const fingerprint = document.getElementById('user-fingerprint').value || 'chrome';
   const devices = parseInt(document.getElementById('user-devices').value) || 0;
   const protocol = document.getElementById('user-protocol').value || 'vless-ws';
+  const password = document.getElementById('user-password').value.trim();
   
   try {
     const r = await authF('/api/links', {
@@ -569,7 +747,8 @@ async function saveUser() {
         fingerprint: fingerprint,
         max_devices: devices,
         protocol: protocol,
-        note: ''
+        note: '',
+        password: password
       })
     });
     if (!r.ok) throw new Error();
@@ -581,6 +760,7 @@ async function saveUser() {
     document.getElementById('user-fingerprint').value = 'chrome';
     document.getElementById('user-devices').value = '1';
     document.getElementById('user-protocol').value = 'vless-ws';
+    document.getElementById('user-password').value = '';
     
     closeModal('modal-user');
     toast('🦅 کانفیگ ساخته شد ✓', 'ok');
@@ -603,17 +783,6 @@ async function resetUsage(uuid) {
     toast('مصرف ریست شد ✓', 'ok');
     loadUsers();
   } catch(e) { toast('خطا', 'err'); }
-}
-
-// ===== حذف کاربر =====
-async function deleteUser(uuid) {
-  if (!confirm('🦅 حذف این کاربر؟')) return;
-  try {
-    const r = await authF('/api/links/' + uuid, { method: 'DELETE' });
-    if (!r.ok) throw new Error();
-    toast('کاربر حذف شد', 'ok');
-    loadUsers();
-  } catch(e) { toast('خطا در حذف', 'err'); }
 }
 
 // ===== اتصالات زنده =====
@@ -726,66 +895,64 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
 *{{margin:0;padding:0;box-sizing:border-box}}
 body{{
     font-family:'Vazirmatn',sans-serif;
-    background:#06060f;
+    background:linear-gradient(135deg,#0a0a1a,#1a0a2e,#2a0a4a);
     min-height:100vh;
     display:flex;
     align-items:center;
     justify-content:center;
     padding:20px;
-    color:#F0F0FF;
+    color:#F0EEFF;
     position:relative;
     overflow-x:hidden;
 }}
-@keyframes bgGrad{{0%{{background-position:0% 50%}}50%{{background-position:100% 50%}}100%{{background-position:0% 50%}}}}
-body{{background:linear-gradient(135deg,#06060f,#0a0a18,#12122a);background-size:300% 300%;animation:bgGrad 15s ease infinite}}
 .bg-fx{{
     position:fixed;inset:0;
-    background:radial-gradient(ellipse 70% 50% at 30% 20%,rgba(79,70,229,0.05),transparent 60%),
+    background:radial-gradient(ellipse 70% 50% at 30% 20%,rgba(139,92,246,0.05),transparent 60%),
                radial-gradient(ellipse 60% 40% at 70% 80%,rgba(236,72,153,0.03),transparent 60%);
     z-index:0;
     pointer-events:none;
 }}
 .eagle-bg{{
     position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.03;font-size:300px;
-    display:flex;align-items:center;justify-content:center;color:#F0F0FF;
+    display:flex;align-items:center;justify-content:center;color:#F0EEFF;
 }}
 .orb{{
     position:fixed;border-radius:50%;filter:blur(120px);z-index:0;animation:float 12s ease-in-out infinite;pointer-events:none;
 }}
-.orb1{{width:400px;height:400px;background:rgba(79,70,229,0.04);top:-150px;right:-100px}}
+.orb1{{width:400px;height:400px;background:rgba(139,92,246,0.04);top:-150px;right:-100px}}
 .orb2{{width:300px;height:300px;background:rgba(236,72,153,0.03);bottom:-100px;left:-80px;animation-delay:6s}}
 @keyframes float{{0%,100%{{transform:translateY(0)}}50%{{transform:translateY(-30px)}}}}
 .card{{
     position:relative;z-index:10;
-    background:rgba(15,15,35,0.7);
+    background:rgba(20,20,50,0.7);
     backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
-    border:1px solid rgba(79,70,229,0.12);
+    border:1px solid rgba(139,92,246,0.12);
     border-radius:28px;
     padding:40px 38px 34px;
     max-width:480px;width:100%;
-    box-shadow:0 0 100px rgba(79,70,229,0.04),0 25px 70px rgba(0,0,0,0.6);
+    box-shadow:0 0 100px rgba(139,92,246,0.04),0 25px 70px rgba(0,0,0,0.6);
     animation:cardIn 0.6s ease;
 }}
 @keyframes cardIn{{from{{opacity:0;transform:translateY(30px) scale(0.96)}}to{{opacity:1;transform:translateY(0) scale(1)}}}}
 .brand{{
     display:flex;align-items:center;gap:14px;margin-bottom:28px;
-    padding-bottom:18px;border-bottom:1px solid rgba(79,70,229,0.08);
+    padding-bottom:18px;border-bottom:1px solid rgba(139,92,246,0.08);
 }}
 .brand-icon{{
     width:52px;height:52px;border-radius:16px;
-    background:linear-gradient(135deg,#4F46E5,#EC4899);
+    background:linear-gradient(135deg,#8B5CF6,#EC4899);
     display:flex;align-items:center;justify-content:center;
     font-size:28px;flex-shrink:0;
-    box-shadow:0 0 40px rgba(79,70,229,0.15);
+    box-shadow:0 0 40px rgba(139,92,246,0.15);
 }}
 .brand-text .name{{
     font-size:18px;font-weight:800;
-    background:linear-gradient(135deg,#818CF8,#EC4899);
+    background:linear-gradient(135deg,#A78BFA,#EC4899);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }}
-.brand-text .sub{{font-size:10.5px;color:#4A4A6A;margin-top:2px;-webkit-text-fill-color:#4A4A6A}}
+.brand-text .sub{{font-size:10.5px;color:#5A4A7A;margin-top:2px;-webkit-text-fill-color:#5A4A7A}}
 .user-header{{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}}
-.user-name{{font-size:24px;font-weight:800;color:#F0F0FF;display:flex;align-items:center;gap:8px}}
+.user-name{{font-size:24px;font-weight:800;color:#F0EEFF;display:flex;align-items:center;gap:8px}}
 .user-name .eagle{{font-size:20px}}
 .status{{
     display:inline-flex;align-items:center;gap:5px;
@@ -804,10 +971,10 @@ body{{background:linear-gradient(135deg,#06060f,#0a0a18,#12122a);background-size
     background:rgba(255,255,255,0.02);
     border:1px solid rgba(255,255,255,0.04);
     border-radius:10px;padding:8px 12px;
-    font-size:10px;font-family:monospace;color:#4A4A6A;
+    font-size:10px;font-family:monospace;color:#5A4A7A;
     word-break:break-all;margin:6px 0 16px;cursor:pointer;transition:.15s;
 }}
-.uuid-box:hover{{background:rgba(79,70,229,0.05);border-color:rgba(79,70,229,0.1)}}
+.uuid-box:hover{{background:rgba(139,92,246,0.05);border-color:rgba(139,92,246,0.1)}}
 .info-grid{{display:grid;gap:10px;margin:16px 0}}
 .info-item{{
     background:rgba(255,255,255,0.02);
@@ -817,16 +984,16 @@ body{{background:linear-gradient(135deg,#06060f,#0a0a18,#12122a);background-size
     transition:.15s;
 }}
 .info-item:hover{{background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.06)}}
-.info-label{{font-size:12px;color:#6A6A8A;display:flex;align-items:center;gap:6px}}
-.info-label i{{font-size:15px;color:#4F46E5}}
-.info-value{{font-size:14px;font-weight:700;color:#F0F0FF}}
-.info-value.used{{color:#818CF8}}
+.info-label{{font-size:12px;color:#7A6A9A;display:flex;align-items:center;gap:6px}}
+.info-label i{{font-size:15px;color:#8B5CF6}}
+.info-value{{font-size:14px;font-weight:700;color:#F0EEFF}}
+.info-value.used{{color:#A78BFA}}
 .info-value.remain{{color:#34D399}}
 .info-value.proto{{
     font-size:11px;
-    background:rgba(79,70,229,0.08);
+    background:rgba(139,92,246,0.08);
     padding:4px 12px;border-radius:8px;
-    border:1px solid rgba(79,70,229,0.08);
+    border:1px solid rgba(139,92,246,0.08);
 }}
 .progress{{margin:18px 0 20px}}
 .progress-bar{{
@@ -835,22 +1002,22 @@ body{{background:linear-gradient(135deg,#06060f,#0a0a18,#12122a);background-size
 }}
 .progress-fill{{
     height:100%;border-radius:5px;
-    background:linear-gradient(90deg,#4F46E5,#EC4899);
+    background:linear-gradient(90deg,#8B5CF6,#EC4899);
     width:{percent:.1f}%;transition:width 1s ease;
 }}
-.progress-text{{display:flex;justify-content:space-between;font-size:11px;color:#6A6A8A;margin-top:6px}}
-.progress-text .pct{{font-weight:700;color:#F0F0FF}}
+.progress-text{{display:flex;justify-content:space-between;font-size:11px;color:#7A6A9A;margin-top:6px}}
+.progress-text .pct{{font-weight:700;color:#F0EEFF}}
 .vless-section{{
     background:rgba(255,255,255,0.02);
     border:1px solid rgba(255,255,255,0.04);
     border-radius:12px;padding:14px 16px;margin:16px 0;
 }}
 .vless-label{{
-    font-size:10px;color:#6A6A8A;font-weight:700;
+    font-size:10px;color:#7A6A9A;font-weight:700;
     text-transform:uppercase;letter-spacing:.06em;
     display:flex;align-items:center;gap:6px;margin-bottom:8px;
 }}
-.vless-label i{{color:#818CF8;font-size:13px}}
+.vless-label i{{color:#A78BFA;font-size:13px}}
 .vless-link{{
     font-family:monospace;font-size:10px;color:#A78BFA;
     word-break:break-all;line-height:1.8;
@@ -866,16 +1033,16 @@ body{{background:linear-gradient(135deg,#06060f,#0a0a18,#12122a);background-size
 }}
 .btn i{{font-size:14px}}
 .btn-primary{{
-    background:linear-gradient(135deg,#4F46E5,#EC4899);
-    color:#fff;box-shadow:0 4px 20px rgba(79,70,229,0.2);
+    background:linear-gradient(135deg,#8B5CF6,#EC4899);
+    color:#fff;box-shadow:0 4px 20px rgba(139,92,246,0.2);
 }}
-.btn-primary:hover{{transform:translateY(-2px);box-shadow:0 8px 30px rgba(79,70,229,0.3)}}
+.btn-primary:hover{{transform:translateY(-2px);box-shadow:0 8px 30px rgba(139,92,246,0.3)}}
 .btn-secondary{{
     background:rgba(255,255,255,0.04);
     border:1px solid rgba(255,255,255,0.06);
-    color:#8A8AAA;
+    color:#8A7AAA;
 }}
-.btn-secondary:hover{{background:rgba(255,255,255,0.08);color:#F0F0FF}}
+.btn-secondary:hover{{background:rgba(255,255,255,0.08);color:#F0EEFF}}
 .btn-success{{
     background:rgba(16,185,129,0.1);
     border:1px solid rgba(16,185,129,0.15);
@@ -885,15 +1052,15 @@ body{{background:linear-gradient(135deg,#06060f,#0a0a18,#12122a);background-size
 .footer{{
     margin-top:22px;padding-top:16px;
     border-top:1px solid rgba(255,255,255,0.03);
-    text-align:center;font-size:10px;color:#4A4A6A;
+    text-align:center;font-size:10px;color:#5A4A7A;
 }}
-.footer .eagle{{color:#818CF8;font-weight:700}}
+.footer .eagle{{color:#A78BFA;font-weight:700}}
 .toast{{
     position:fixed;bottom:30px;left:50%;
     transform:translateX(-50%) translateY(60px);
-    background:rgba(15,15,35,0.9);backdrop-filter:blur(20px);
-    border:1px solid rgba(79,70,229,0.12);
-    color:#F0F0FF;border-radius:12px;
+    background:rgba(20,20,50,0.9);backdrop-filter:blur(20px);
+    border:1px solid rgba(139,92,246,0.12);
+    color:#F0EEFF;border-radius:12px;
     padding:12px 22px;font-size:13px;
     opacity:0;transition:all .3s;z-index:999;pointer-events:none;
     display:flex;align-items:center;gap:8px;
