@@ -1,9 +1,8 @@
-# relay_vless.py
-# بخش VLESS Relay — جدا شده از main.py (منطق اصلی دست‌نخورده)
-# تغییر: ثبت IP واقعی کلاینت (با احتساب هدر x-forwarded-for پشت پراکسی) در connections
+# relay_vless.py - نسخه نهایی با پشتیبانی از محدودیت دستگاه
 
 import asyncio
 import secrets
+import socket
 from datetime import datetime
 
 from fastapi import WebSocket, WebSocketDisconnect
@@ -20,13 +19,12 @@ from main import (
     save_state,
     log_activity,
     now_ir,
+    device_connections,
+    DEVICE_CONNECTIONS_LOCK,
+    remove_device_connection,
 )
 
-# ══════════════════════════════════════════════════════════════════════════════
-# VLESS Relay — بهینه‌شده برای حداکثر throughput
-# ══════════════════════════════════════════════════════════════════════════════
-
-RELAY_BUF = 256 * 1024   # 256 KB buffer
+RELAY_BUF = 256 * 1024
 
 def _ws_client_ip(ws: WebSocket) -> str:
     fwd = ws.headers.get("x-forwarded-for")
@@ -37,22 +35,50 @@ def _ws_client_ip(ws: WebSocket) -> str:
         return real_ip.strip()
     return ws.client.host if ws.client else "نامشخص"
 
+async def check_device_limit(uuid: str, client_ip: str) -> bool:
+    async with LINKS_LOCK:
+        link = LINKS.get(uuid)
+        if not link:
+            return False
+        max_devices = link.get("max_devices", 0)
+        if max_devices == 0:
+            return True
+    
+    async with DEVICE_CONNECTIONS_LOCK:
+        current_ips = device_connections.get(uuid, [])
+        if client_ip in current_ips:
+            return True
+        if len(current_ips) >= max_devices:
+            return False
+        if uuid not in device_connections:
+            device_connections[uuid] = []
+        device_connections[uuid].append(client_ip)
+        return True
+
 async def parse_vless_header(chunk: bytes):
     if len(chunk) < 24:
         raise ValueError("chunk too small")
     pos = 1
     pos += 16
-    addon_len = chunk[pos]; pos += 1 + addon_len
-    command = chunk[pos]; pos += 1
-    port = int.from_bytes(chunk[pos:pos+2], "big"); pos += 2
-    addr_type = chunk[pos]; pos += 1
+    addon_len = chunk[pos]
+    pos += 1 + addon_len
+    command = chunk[pos]
+    pos += 1
+    port = int.from_bytes(chunk[pos:pos+2], "big")
+    pos += 2
+    addr_type = chunk[pos]
+    pos += 1
     if addr_type == 1:
-        address = ".".join(str(b) for b in chunk[pos:pos+4]); pos += 4
+        address = ".".join(str(b) for b in chunk[pos:pos+4])
+        pos += 4
     elif addr_type == 2:
-        dlen = chunk[pos]; pos += 1
-        address = chunk[pos:pos+dlen].decode("utf-8", errors="ignore"); pos += dlen
+        dlen = chunk[pos]
+        pos += 1
+        address = chunk[pos:pos+dlen].decode("utf-8", errors="ignore")
+        pos += dlen
     elif addr_type == 3:
-        ab = chunk[pos:pos+16]; pos += 16
+        ab = chunk[pos:pos+16]
+        pos += 16
         address = ":".join(f"{ab[i]:02x}{ab[i+1]:02x}" for i in range(0, 16, 2))
     else:
         raise ValueError(f"unknown addr type: {addr_type}")
@@ -65,9 +91,9 @@ async def check_and_use(uid: str, n: int) -> bool:
             return False
         if not is_link_allowed(link):
             return False
-        link["used_bytes"] += n
-        stats["total_bytes"] += n
-        hourly_traffic[now_ir().strftime("%H:00")] += n
+        link["used_bytes"] = link.get("used_bytes", 0) + n
+        stats["total_bytes"] = stats.get("total_bytes", 0) + n
+        hourly_traffic[now_ir().strftime("%H:00")] = hourly_traffic.get(now_ir().strftime("%H:00"), 0) + n
     return True
 
 async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: str, uid: str):
@@ -82,8 +108,9 @@ async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: 
             if not await check_and_use(uid, len(data)):
                 await ws.close(code=1008, reason="quota/disabled/unknown")
                 break
-            stats["total_requests"] += 1
-            connections[conn_id]["bytes"] += len(data)
+            stats["total_requests"] = stats.get("total_requests", 0) + 1
+            if conn_id in connections:
+                connections[conn_id]["bytes"] = connections[conn_id].get("bytes", 0) + len(data)
             writer.write(data)
             if writer.transport.get_write_buffer_size() > RELAY_BUF:
                 await writer.drain()
@@ -105,7 +132,8 @@ async def relay_tcp_to_ws(ws: WebSocket, reader: asyncio.StreamReader, conn_id: 
             if not await check_and_use(uid, len(data)):
                 await ws.close(code=1008, reason="quota/disabled/unknown")
                 break
-            connections[conn_id]["bytes"] += len(data)
+            if conn_id in connections:
+                connections[conn_id]["bytes"] = connections[conn_id].get("bytes", 0) + len(data)
             payload = (b"\x00\x00" + data) if first else data
             first = False
             await ws.send_bytes(payload)
@@ -115,25 +143,39 @@ async def relay_tcp_to_ws(ws: WebSocket, reader: asyncio.StreamReader, conn_id: 
 async def websocket_tunnel(ws: WebSocket, uuid: str):
     await ws.accept()
 
+    client_ip = _ws_client_ip(ws)
+    
     async with LINKS_LOCK:
         link = LINKS.get(uuid)
+
+    if not link:
+        logger.warning(f"🚫 WS rejected uuid={uuid[:8]}… (user not found)")
+        await ws.close(code=1008, reason="user not found")
+        return
 
     if not is_link_allowed(link):
         logger.warning(f"🚫 WS rejected uuid={uuid[:8]}… (not allowed)")
         await ws.close(code=1008, reason="not authorized")
         return
 
-    ip = _ws_client_ip(ws)
+    max_devices = link.get("max_devices", 0)
+    if max_devices > 0:
+        if not await check_device_limit(uuid, client_ip):
+            logger.warning(f"🚫 Device limit exceeded for {uuid[:8]}… (max: {max_devices})")
+            await ws.close(code=1008, reason="device limit exceeded")
+            return
+
     conn_id = secrets.token_urlsafe(6)
     connections[conn_id] = {
         "uuid": uuid,
-        "ip": ip,
+        "ip": client_ip,
         "transport": "vless-ws",
         "connected_at": datetime.now().isoformat(),
         "bytes": 0,
     }
-    logger.info(f"✅ WS [{conn_id}] uuid={uuid[:8]}… ip={ip} total={len(connections)}")
-    log_activity("connection", f"اتصال جدید از {ip} (کانفیگ {link.get('label','?')})", "info")
+    
+    logger.info(f"✅ WS [{conn_id}] uuid={uuid[:8]}… ip={client_ip} total={len(connections)}")
+    log_activity("connection", f"اتصال جدید از {client_ip} (کانفیگ {link.get('label','?')})", "info")
     writer = None
 
     try:
@@ -150,8 +192,9 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
             await ws.close(code=1008, reason="quota/disabled")
             return
 
-        stats["total_requests"] += 1
-        connections[conn_id]["bytes"] += len(first_chunk)
+        stats["total_requests"] = stats.get("total_requests", 0) + 1
+        if conn_id in connections:
+            connections[conn_id]["bytes"] = connections[conn_id].get("bytes", 0) + len(first_chunk)
         logger.info(f"➡️  [{conn_id}] → {address}:{port}")
 
         reader, writer = await asyncio.wait_for(
@@ -160,7 +203,6 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
         )
         sock = writer.transport.get_extra_info('socket')
         if sock:
-            import socket
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
         if payload:
@@ -186,10 +228,10 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
     except WebSocketDisconnect:
         pass
     except asyncio.TimeoutError:
-        stats["total_errors"] += 1
+        stats["total_errors"] = stats.get("total_errors", 0) + 1
         error_logs.append({"error": "connection timeout", "time": datetime.now().isoformat()})
     except Exception as exc:
-        stats["total_errors"] += 1
+        stats["total_errors"] = stats.get("total_errors", 0) + 1
         error_logs.append({"error": str(exc), "time": datetime.now().isoformat()})
         logger.error(f"WS error [{conn_id}]: {exc}")
     finally:
@@ -200,4 +242,5 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
             except Exception:
                 pass
         connections.pop(conn_id, None)
+        await remove_device_connection(uuid, client_ip)
         logger.info(f"🔌 WS closed [{conn_id}] total={len(connections)}")
