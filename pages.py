@@ -1,4 +1,4 @@
-# pages.py - پنل عقاب (نسخه ساده با اسم رایگان + تایید)
+# pages.py - پنل عقاب (نسخه نهایی با بنر رایگان + اتصالات دقیق)
 
 LOGIN_HTML = r"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -1003,13 +1003,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 </body></html>"""
 
 
-# ===== WARNING_CONFIG خالی (چون دیگه نیاز نیست) =====
-WARNING_CONFIG = ""
-
-
-# ===== صفحه ساب‌لینک با اسم رایگان =====
+# ===== صفحه ساب‌لینک با بنر رایگان و اتصالات دقیق =====
 def get_sub_page_html(uuid: str, link: dict) -> str:
-    """صفحه ساب‌لینک با اسم رایگان و اتصالات زنده"""
+    """صفحه ساب‌لینک با بنر رایگان و اتصالات دقیق"""
     
     used = link.get('used_bytes', 0)
     limit = link.get('limit_bytes', 0)
@@ -1057,7 +1053,7 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
     used_fmt = fmt_bytes(used)
     limit_fmt = 'نامحدود' if limit == 0 else fmt_bytes(limit)
     
-    # ===== ساخت لیست اتصالات زنده =====
+    # ===== ساخت لیست اتصالات زنده (دقیق) =====
     conns_html = ""
     if active_connections > 0:
         conns_html = f"""
@@ -1088,7 +1084,7 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
         </div>
         """
     
-    # ===== ساخت لینک با اسم رایگان =====
+    # ===== ساخت لینک =====
     from main import get_host, generate_vless_link
     host = get_host()
     new_vless_link = generate_vless_link(
@@ -1140,6 +1136,27 @@ body{{
     background-size:400% 400%;
     animation:fireBG 8s ease infinite;
 }}
+/* ===== بنر رایگان ===== */
+.free-banner{{
+    position:fixed;top:0;left:0;right:0;z-index:999;
+    background:linear-gradient(135deg,#FF6B35,#FF4500,#FF8C00);
+    background-size:200% 200%;
+    animation:btnFire 3s ease infinite;
+    padding:10px 12px;
+    text-align:center;
+    font-size:13px;
+    font-weight:800;
+    color:#fff;
+    box-shadow:0 2px 20px rgba(255,80,20,0.3);
+    border-bottom:2px solid rgba(255,255,255,0.1);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+}}
+.free-banner .hl{{background:#fff;color:#FF4500;padding:0 12px;border-radius:4px;font-size:14px}}
+@keyframes btnFire{{0%{{background-position:0% 50%}}50%{{background-position:100% 50%}}100%{{background-position:0% 50%}}}}
 .fire-particles{{
     position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
 }}
@@ -1170,6 +1187,7 @@ body{{
     border-radius:28px;
     padding:40px 38px 34px;
     max-width:500px;width:100%;
+    margin-top:60px;
     box-shadow:0 0 100px rgba(255,80,20,0.05),0 25px 70px rgba(0,0,0,0.7);
     animation:cardIn 0.6s ease;
 }}
@@ -1310,15 +1328,23 @@ body{{
 .toast.show{{opacity:1;transform:translateX(-50%) translateY(0)}}
 .toast.ok{{border-color:rgba(16,185,129,0.2);color:#34D399}}
 @media(max-width:520px){{
-    .card{{padding:28px 20px 24px}}
+    .card{{padding:28px 20px 24px;margin-top:70px}}
     .user-name{{font-size:20px}}
     .brand-icon{{width:44px;height:44px;font-size:22px}}
     .info-item{{padding:11px 14px}}
     .btn{{font-size:11px;padding:8px 12px}}
+    .free-banner{{font-size:11px;padding:8px}}
 }}
 </style>
 </head>
 <body>
+<!-- ===== بنر رایگان ===== -->
+<div class="free-banner">
+    <span>🔥</span>
+    <span>✅ این سرویس کاملاً <span class="hl">رایگان</span> است</span>
+    <span>🔥</span>
+</div>
+
 <div class="fire-particles">
     <div class="fire-particle" style="left:5%;animation-delay:0s;width:8px;height:8px"></div>
     <div class="fire-particle" style="left:15%;animation-delay:2s;width:5px;height:5px"></div>
@@ -1371,7 +1397,7 @@ body{{
         <button class="btn btn-success" onclick="copySub()"><i class="ti ti-link"></i> کپی ساب‌لینک</button>
         <button class="btn btn-secondary" onclick="showQR()"><i class="ti ti-qrcode"></i> QR</button>
     </div>
-    <div class="footer"><span class="eagle">🔥</span> پنل عقاب</div>
+    <div class="footer"><span class="eagle">🔥</span> پنل عقاب · کاملاً رایگان</div>
 </div>
 <script>
 const vless = `{new_vless_link}`;
