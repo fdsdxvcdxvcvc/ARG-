@@ -1,197 +1,203 @@
-# relay_vless.py - نسخه نهایی پایدار (بدون خطا)
+# relay_vless.py
+# بخش VLESS Relay — جدا شده از main.py (منطق اصلی دست‌نخورده)
+# تغییر: ثبت IP واقعی کلاینت (با احتساب هدر x-forwarded-for پشت پراکسی) در connections
 
 import asyncio
-import socket
-import logging
+import secrets
 from datetime import datetime
 
-logger = logging.getLogger("RVG-Gateway")
-RELAY_BUF = 64 * 1024
+from fastapi import WebSocket, WebSocketDisconnect
 
-# ========== تنظیمات Xray ==========
-XRAY_HOST = "127.0.0.1"
-XRAY_PORT = 443  # پورت پیش‌فرض Xray
+from main import (
+    LINKS,
+    LINKS_LOCK,
+    stats,
+    hourly_traffic,
+    connections,
+    error_logs,
+    logger,
+    is_link_allowed,
+    save_state,
+    log_activity,
+    now_ir,
+)
 
-async def relay_ws_to_tcp(websocket, sock, uuid):
-    """Relay از WebSocket به TCP"""
-    try:
-        while True:
-            try:
-                data = await asyncio.wait_for(websocket.receive_bytes(), timeout=30.0)
-                if not data:
-                    break
-                sock.sendall(data)
-            except asyncio.TimeoutError:
-                continue
-            except:
-                break
-    except:
-        pass
-    finally:
-        try:
-            sock.close()
-        except:
-            pass
+# ══════════════════════════════════════════════════════════════════════════════
+# VLESS Relay — بهینه‌شده برای حداکثر throughput
+# ══════════════════════════════════════════════════════════════════════════════
 
-async def relay_tcp_to_ws(websocket, sock, uuid):
-    """Relay از TCP به WebSocket"""
-    loop = asyncio.get_event_loop()
-    try:
-        while True:
-            try:
-                data = await asyncio.wait_for(loop.sock_recv(sock, RELAY_BUF), timeout=30.0)
-                if not data:
-                    break
-                await websocket.send_bytes(data)
-            except asyncio.TimeoutError:
-                continue
-            except:
-                break
-    except:
-        pass
-    finally:
-        try:
-            sock.close()
-        except:
-            pass
+RELAY_BUF = 256 * 1024   # 256 KB buffer
+
+def _ws_client_ip(ws: WebSocket) -> str:
+    fwd = ws.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    real_ip = ws.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip()
+    return ws.client.host if ws.client else "نامشخص"
 
 async def parse_vless_header(chunk: bytes):
-    """پارسر ساده VLESS header"""
     if len(chunk) < 24:
         raise ValueError("chunk too small")
     pos = 1
     pos += 16
-    addon_len = chunk[pos]
-    pos += 1 + addon_len
-    command = chunk[pos]
-    pos += 1
-    port = int.from_bytes(chunk[pos:pos+2], "big")
-    pos += 2
-    addr_type = chunk[pos]
-    pos += 1
+    addon_len = chunk[pos]; pos += 1 + addon_len
+    command = chunk[pos]; pos += 1
+    port = int.from_bytes(chunk[pos:pos+2], "big"); pos += 2
+    addr_type = chunk[pos]; pos += 1
     if addr_type == 1:
-        address = ".".join(str(b) for b in chunk[pos:pos+4])
-        pos += 4
+        address = ".".join(str(b) for b in chunk[pos:pos+4]); pos += 4
     elif addr_type == 2:
-        dlen = chunk[pos]
-        pos += 1
-        address = chunk[pos:pos+dlen].decode("utf-8", errors="ignore")
-        pos += dlen
+        dlen = chunk[pos]; pos += 1
+        address = chunk[pos:pos+dlen].decode("utf-8", errors="ignore"); pos += dlen
     elif addr_type == 3:
-        ab = chunk[pos:pos+16]
-        pos += 16
+        ab = chunk[pos:pos+16]; pos += 16
         address = ":".join(f"{ab[i]:02x}{ab[i+1]:02x}" for i in range(0, 16, 2))
     else:
         raise ValueError(f"unknown addr type: {addr_type}")
     return command, address, port, chunk[pos:]
 
-async def check_and_use(uuid: str, n: int) -> bool:
-    """بررسی اعتبار و افزایش مصرف"""
-    try:
-        from main import LINKS, LINKS_LOCK, is_link_allowed, stats, hourly_traffic, now_ir
-        async with LINKS_LOCK:
-            link = LINKS.get(uuid)
-            if link is None:
-                return False
-            if not is_link_allowed(link):
-                return False
-            link["used_bytes"] = link.get("used_bytes", 0) + n
-            stats["total_bytes"] = stats.get("total_bytes", 0) + n
-            hourly_traffic[now_ir().strftime("%H:00")] = hourly_traffic.get(now_ir().strftime("%H:00"), 0) + n
-        return True
-    except Exception as e:
-        logger.error(f"check_and_use error: {e}")
-        return False
+async def check_and_use(uid: str, n: int) -> bool:
+    async with LINKS_LOCK:
+        link = LINKS.get(uid)
+        if link is None:
+            return False
+        if not is_link_allowed(link):
+            return False
+        link["used_bytes"] += n
+        stats["total_bytes"] += n
+        hourly_traffic[now_ir().strftime("%H:00")] += n
+    return True
 
-async def websocket_tunnel(websocket, uuid: str):
-    """WebSocket Tunnel اصلی"""
-    from main import connections, LINKS, LINKS_LOCK, log_activity, is_link_allowed
-    
-    client_addr = websocket.client.host if websocket.client else "unknown"
-    logger.info(f"🔗 New connection: {uuid} from {client_addr}")
-    
-    # بررسی اعتبار کاربر
+async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: str, uid: str):
     try:
-        async with LINKS_LOCK:
-            link = LINKS.get(uuid)
-            if not link:
-                await websocket.close(code=1008, reason="User not found")
-                logger.warning(f"❌ User not found: {uuid}")
-                return
-            if not is_link_allowed(link):
-                await websocket.close(code=1008, reason="User inactive or expired")
-                logger.warning(f"❌ User inactive/expired: {uuid}")
-                return
-            logger.info(f"✅ User validated: {uuid} - {link.get('label', 'Unknown')}")
-    except Exception as e:
-        logger.error(f"❌ Auth error: {e}")
-        try:
-            await websocket.close(code=1011, reason="Internal error")
-        except:
-            pass
-        return
-    
-    sock = None
-    try:
-        # اتصال به Xray
-        logger.info(f"🔗 Connecting to Xray: {XRAY_HOST}:{XRAY_PORT}")
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(10)
-        sock.connect((XRAY_HOST, XRAY_PORT))
-        sock.settimeout(None)
-        logger.info(f"✅ Connected to Xray: {XRAY_HOST}:{XRAY_PORT}")
-        
-        # ذخیره اتصال
-        connections[uuid] = {
-            "ip": client_addr,
-            "uuid": uuid,
-            "connected_at": datetime.now().isoformat(),
-            "transport": "vless-ws",
-            "bytes": 0,
-        }
-        
-        log_activity("connection", f"اتصال جدید از {client_addr} (کانفیگ {link.get('label','?')})", "ok")
-        
-        # شروع Relay
-        await asyncio.gather(
-            relay_ws_to_tcp(websocket, sock, uuid),
-            relay_tcp_to_ws(websocket, sock, uuid)
-        )
-        
-    except ConnectionRefusedError:
-        logger.error(f"🚫 Xray is NOT running on {XRAY_HOST}:{XRAY_PORT}")
-        logger.error("💡 Please install and start Xray first!")
-        logger.error("💡 Run: bash -c \"$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)\" @ install")
-        try:
-            await websocket.close(code=1011, reason="Xray not running")
-        except:
-            pass
-        
-    except socket.timeout:
-        logger.error(f"⏱️ Connection timeout to Xray: {XRAY_HOST}:{XRAY_PORT}")
-        try:
-            await websocket.close(code=1011, reason="Connection timeout")
-        except:
-            pass
-        
-    except Exception as e:
-        logger.error(f"❌ WS error: {e}")
-        try:
-            await websocket.close(code=1011, reason=f"Error: {str(e)[:50]}")
-        except:
-            pass
-        
+        while True:
+            msg = await ws.receive()
+            if msg["type"] == "websocket.disconnect":
+                break
+            data = msg.get("bytes") or (msg.get("text") or "").encode()
+            if not data:
+                continue
+            if not await check_and_use(uid, len(data)):
+                await ws.close(code=1008, reason="quota/disabled/unknown")
+                break
+            stats["total_requests"] += 1
+            connections[conn_id]["bytes"] += len(data)
+            writer.write(data)
+            if writer.transport.get_write_buffer_size() > RELAY_BUF:
+                await writer.drain()
+    except (WebSocketDisconnect, Exception):
+        pass
     finally:
-        # پاکسازی
-        connections.pop(uuid, None)
-        if sock:
-            try:
-                sock.close()
-            except:
-                pass
         try:
-            await websocket.close()
-        except:
+            writer.write_eof()
+        except Exception:
             pass
-        log_activity("connection", f"اتصال {uuid} قطع شد", "info")
-        logger.info(f"👋 Disconnected: {uuid}")
+
+async def relay_tcp_to_ws(ws: WebSocket, reader: asyncio.StreamReader, conn_id: str, uid: str):
+    first = True
+    try:
+        while True:
+            data = await reader.read(RELAY_BUF)
+            if not data:
+                break
+            if not await check_and_use(uid, len(data)):
+                await ws.close(code=1008, reason="quota/disabled/unknown")
+                break
+            connections[conn_id]["bytes"] += len(data)
+            payload = (b"\x00\x00" + data) if first else data
+            first = False
+            await ws.send_bytes(payload)
+    except Exception:
+        pass
+
+async def websocket_tunnel(ws: WebSocket, uuid: str):
+    await ws.accept()
+
+    async with LINKS_LOCK:
+        link = LINKS.get(uuid)
+
+    if not is_link_allowed(link):
+        logger.warning(f"🚫 WS rejected uuid={uuid[:8]}… (not allowed)")
+        await ws.close(code=1008, reason="not authorized")
+        return
+
+    ip = _ws_client_ip(ws)
+    conn_id = secrets.token_urlsafe(6)
+    connections[conn_id] = {
+        "uuid": uuid,
+        "ip": ip,
+        "transport": "vless-ws",
+        "connected_at": datetime.now().isoformat(),
+        "bytes": 0,
+    }
+    logger.info(f"✅ WS [{conn_id}] uuid={uuid[:8]}… ip={ip} total={len(connections)}")
+    log_activity("connection", f"اتصال جدید از {ip} (کانفیگ {link.get('label','?')})", "info")
+    writer = None
+
+    try:
+        first_msg = await asyncio.wait_for(ws.receive(), timeout=15.0)
+        if first_msg["type"] == "websocket.disconnect":
+            return
+        first_chunk = first_msg.get("bytes") or (first_msg.get("text") or "").encode()
+        if not first_chunk:
+            return
+
+        command, address, port, payload = await parse_vless_header(first_chunk)
+
+        if not await check_and_use(uuid, len(first_chunk)):
+            await ws.close(code=1008, reason="quota/disabled")
+            return
+
+        stats["total_requests"] += 1
+        connections[conn_id]["bytes"] += len(first_chunk)
+        logger.info(f"➡️  [{conn_id}] → {address}:{port}")
+
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(address, port),
+            timeout=10.0
+        )
+        sock = writer.transport.get_extra_info('socket')
+        if sock:
+            import socket
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+        if payload:
+            writer.write(payload)
+            await writer.drain()
+
+        done, pending = await asyncio.wait(
+            {
+                asyncio.create_task(relay_ws_to_tcp(ws, writer, conn_id, uuid)),
+                asyncio.create_task(relay_tcp_to_ws(ws, reader, conn_id, uuid)),
+            },
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for t in pending:
+            t.cancel()
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
+
+        asyncio.create_task(save_state())
+
+    except WebSocketDisconnect:
+        pass
+    except asyncio.TimeoutError:
+        stats["total_errors"] += 1
+        error_logs.append({"error": "connection timeout", "time": datetime.now().isoformat()})
+    except Exception as exc:
+        stats["total_errors"] += 1
+        error_logs.append({"error": str(exc), "time": datetime.now().isoformat()})
+        logger.error(f"WS error [{conn_id}]: {exc}")
+    finally:
+        if writer:
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception:
+                pass
+        connections.pop(conn_id, None)
+        logger.info(f"🔌 WS closed [{conn_id}] total={len(connections)}")
