@@ -1,4 +1,4 @@
-# pages.py - پنل عقاب (نسخه کامل با پورت و اخطار)
+# pages.py - پنل عقاب (نسخه کامل با تم آتشین، اتصالات زنده، تنظیمات)
 
 LOGIN_HTML = r"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -264,6 +264,17 @@ select.fi{appearance:none;cursor:pointer}
 .conn-card .conn-info{display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:var(--t2);gap:6px;flex-wrap:wrap}
 .conn-status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;margin-right:3px}
 
+/* ===== بخش تنظیمات ===== */
+.settings-card{background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--card-b);border-radius:var(--radius);padding:24px;max-width:500px}
+.settings-card .title{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.settings-card .title i{color:var(--accent)}
+.settings-card .field{margin-bottom:14px}
+.settings-card .field label{font-size:11px;color:var(--t3);display:block;margin-bottom:4px;font-weight:600}
+.settings-card .field input{width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--card-b);background:rgba(0,0,0,.2);color:var(--t1);font-family:inherit;font-size:13px;outline:none;transition:.2s}
+.settings-card .field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,92,246,.08)}
+.settings-card .field input::placeholder{color:var(--t3)}
+.settings-card .btn{width:100%;justify-content:center;margin-top:4px}
+
 @media(max-width:1200px){.stats-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:768px){
@@ -302,18 +313,14 @@ select.fi{appearance:none;cursor:pointer}
     
     <div class="fg"><label><i class="ti ti-settings"></i> پروتکل</label><select class="fi" id="user-protocol"><option value="vless-ws">VLESS (WebSocket)</option><option value="xhttp-stream-up">XHTTP (Stream)</option></select></div>
     
-    <!-- ===== پورت دلخواه ===== -->
     <div class="fg">
       <label><i class="ti ti-plug"></i> پورت (پیش‌فرض: 443)</label>
       <input class="fi" id="user-port" type="number" min="1" max="65535" value="443" placeholder="443">
-      <span style="font-size:9px;color:var(--t3);margin-top:2px">💡 پورت دلخواه خود را وارد کنید (۱ تا ۶۵۵۳۵)</span>
     </div>
     
-    <!-- ===== رمز محافظت ===== -->
     <div class="fg">
       <label><i class="ti ti-lock"></i> رمز کانفیگ (اختیاری)</label>
       <input class="fi" id="user-password" type="password" placeholder="برای حذف/ویرایش نیاز است" dir="ltr">
-      <span style="font-size:9px;color:var(--t3);margin-top:2px">💡 اگر رمز بذاری، برای حذف یا ویرایش این کانفیگ نیاز به وارد کردن رمز داری</span>
     </div>
     
     <div style="display:flex;gap:8px;margin-top:16px">
@@ -333,7 +340,6 @@ select.fi{appearance:none;cursor:pointer}
     <div class="fg" id="edit-password-section">
       <label><i class="ti ti-lock"></i> 🔑 رمز کانفیگ (برای ویرایش لازم است)</label>
       <input class="fi" id="edit-password" type="password" placeholder="رمز کانفیگ را وارد کنید" dir="ltr">
-      <span style="font-size:9px;color:var(--t3);margin-top:2px">⚠️ اگر کانفیگ رمز دارد، برای ویرایش باید رمز را وارد کنید</span>
     </div>
     
     <div class="fg"><label><i class="ti ti-tag"></i> نام کاربری</label><input class="fi" id="edit-label" placeholder="نام کاربری"></div>
@@ -408,6 +414,7 @@ select.fi{appearance:none;cursor:pointer}
     <div class="nav-it on" data-pg="users"><i class="ti ti-layout-dashboard"></i> داشبورد</div>
     <div class="nav-it" data-pg="connections"><i class="ti ti-plug-connected"></i> اتصالات زنده</div>
     <div class="nav-it" data-pg="support"><i class="ti ti-headset"></i> پشتیبانی</div>
+    <div class="nav-it" data-pg="settings"><i class="ti ti-settings"></i> تنظیمات</div>
   </div>
   <div class="sb-foot">
     <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-palette" id="theme-icon"></i> <span id="theme-label">تغییر تم</span></button>
@@ -435,7 +442,7 @@ select.fi{appearance:none;cursor:pointer}
     <div class="stat-card blue"><span class="icon">👥</span><div class="number" id="total-users">۰</div><div class="label">کل کاربران</div><div class="sub">ثبت‌شده</div><div class="bar"></div></div>
     <div class="stat-card purple"><span class="icon">📊</span><div class="number" id="total-usage">۰</div><div class="label">مصرف کل</div><div class="sub">مگابایت</div><div class="bar"></div></div>
     <div class="stat-card pink"><span class="icon">📱</span><div class="number" id="active-devices">۰</div><div class="label">دستگاه‌های فعال</div><div class="sub">متصل</div><div class="bar"></div></div>
-    <div class="stat-card amber"><span class="icon">⛔</span><div class="number" id="inactive-count">۰</div><div class="label">غیرفعال</div><div class="sub">غیرفعال</div><div class="bar"></div></div>
+    <div class="stat-card amber"><span class="icon">🏆</span><div class="number" id="top-user-label" style="font-size:16px">-</div><div class="label">پر مصرف‌ترین کاربر</div><div class="sub" id="top-user-usage">۰</div><div class="bar"></div></div>
   </div>
 
   <div id="users-grid" class="user-grid"><div class="empty"><i class="ti ti-users"></i><p>هیچ کاربری ساخته نشده</p></div></div>
@@ -459,6 +466,27 @@ select.fi{appearance:none;cursor:pointer}
       <span class="badge bg-green"><span class="dot dg"></span> آنلاین</span>
       <span style="font-size:11px;color:var(--t3)">گروه پشتیبانی عقاب · پاسخگویی سریع</span>
     </div>
+  </div>
+</section>
+
+<!-- ===== بخش تنظیمات ===== -->
+<section class="pg" id="pg-settings">
+  <div class="topbar"><div><div class="tb-title"><i class="ti ti-settings"></i> تنظیمات پنل</div><div class="tb-sub">تغییر رمز عبور پنل مدیریت</div></div></div>
+  <div class="settings-card">
+    <div class="title"><i class="ti ti-lock"></i> تغییر رمز عبور</div>
+    <div class="field">
+      <label>رمز فعلی</label>
+      <input type="password" id="current-password" placeholder="رمز فعلی را وارد کنید" dir="ltr">
+    </div>
+    <div class="field">
+      <label>رمز جدید</label>
+      <input type="password" id="new-password" placeholder="رمز جدید (حداقل ۴ کاراکتر)" dir="ltr">
+    </div>
+    <div class="field">
+      <label>تکرار رمز جدید</label>
+      <input type="password" id="confirm-password" placeholder="تکرار رمز جدید" dir="ltr">
+    </div>
+    <button class="btn btn-p" onclick="changePassword()"><i class="ti ti-check"></i> تغییر رمز</button>
   </div>
 </section>
 </main>
@@ -505,6 +533,36 @@ function esc(s) {
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ===== تغییر رمز پنل =====
+async function changePassword() {
+  const current = document.getElementById('current-password').value;
+  const newpw = document.getElementById('new-password').value;
+  const confirm = document.getElementById('confirm-password').value;
+  
+  if (!current) { toast('رمز فعلی را وارد کنید', 'err'); return; }
+  if (newpw.length < 4) { toast('رمز جدید باید حداقل ۴ کاراکتر باشد', 'err'); return; }
+  if (newpw !== confirm) { toast('رمز جدید و تکرار آن مطابقت ندارند', 'err'); return; }
+  
+  try {
+    const r = await authF('/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: current, new_password: newpw })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(()=>({}));
+      toast(err.detail || 'خطا', 'err');
+      return;
+    }
+    document.getElementById('current-password').value = '';
+    document.getElementById('new-password').value = '';
+    document.getElementById('confirm-password').value = '';
+    toast('✅ رمز پنل با موفقیت تغییر کرد', 'ok');
+  } catch(e) {
+    toast('خطا: ' + e.message, 'err');
+  }
+}
 
 // ===== احراز هویت =====
 async function authF(url, opts={}) {
@@ -557,6 +615,19 @@ async function loadUsers() {
     document.getElementById('active-devices').textContent = devices;
     document.getElementById('last-update').textContent = 'آخرین بروزرسانی: ' + new Date().toLocaleTimeString('fa-IR');
     document.getElementById('online-badge').innerHTML = '<span class="dot dg"></span> ' + online + ' آنلاین';
+    
+    // ===== پر مصرف‌ترین کاربر =====
+    try {
+      const sr = await authF('/stats');
+      const statsData = await sr.json();
+      if (statsData.top_user) {
+        document.getElementById('top-user-label').textContent = '🦅 ' + statsData.top_user.label;
+        document.getElementById('top-user-usage').textContent = statsData.top_user.used_fmt || '0';
+      } else {
+        document.getElementById('top-user-label').textContent = '—';
+        document.getElementById('top-user-usage').textContent = '۰';
+      }
+    } catch(e) {}
     
     if (!links.length) {
       grid.innerHTML = '<div class="empty"><i class="ti ti-users"></i><p>هیچ کاربری ساخته نشده</p></div>';
@@ -855,9 +926,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 </body></html>"""
 
 
-# ===== صفحه ساب‌لینک عقابی =====
+# ===== صفحه ساب‌لینک عقابی با تم آتشین و اتصالات زنده =====
 def get_sub_page_html(uuid: str, link: dict) -> str:
-    """صفحه نمایش اطلاعات کاربر با طراحی عقابی خفن"""
+    """صفحه نمایش اطلاعات کاربر با تم آتشین و نمایش اتصالات زنده"""
     
     used = link.get('used_bytes', 0)
     limit = link.get('limit_bytes', 0)
@@ -868,6 +939,8 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
     max_devices = link.get('max_devices', 0)
     protocol = link.get('protocol', 'vless-ws')
     port = link.get('port', 443)
+    active_connections = link.get('active_connections', 0)
+    active_connections_list = link.get('active_connections_list', [])
     
     percent = 0
     if limit > 0:
@@ -905,20 +978,65 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
     used_fmt = fmt_bytes(used)
     limit_fmt = 'نامحدود' if limit == 0 else fmt_bytes(limit)
     
+    # ===== ساخت لیست اتصالات زنده =====
+    conns_html = ""
+    if active_connections > 0:
+        conns_html = f"""
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:12px 14px;margin:12px 0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:#7A6A9A">
+                <span class="conn-status-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34D399;animation:pulse 1.5s infinite"></span>
+                <span style="font-weight:700;color:#34D399">{active_connections} دستگاه متصل</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+        """
+        for conn in active_connections_list[:10]:  # حداکثر 10 تا نمایش بده
+            ip = conn.get('ip', 'نامشخص')
+            conns_html += f"""
+                <span style="font-family:monospace;font-size:10px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.06);padding:3px 10px;border-radius:6px;color:#8A7AAA">🔵 {ip}</span>
+            """
+        if len(active_connections_list) > 10:
+            conns_html += f"""
+                <span style="font-family:monospace;font-size:10px;background:rgba(139,92,246,0.04);padding:3px 10px;border-radius:6px;color:#5A4A7A">+{len(active_connections_list)-10} بیشتر</span>
+            """
+        conns_html += """
+            </div>
+        </div>
+        """
+    else:
+        conns_html = f"""
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:10px 14px;margin:12px 0;text-align:center">
+            <span style="font-size:11px;color:#5A4A7A">🔴 بدون اتصال فعال</span>
+        </div>
+        """
+    
     return f"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🦅 اطلاعات اشتراک - {label}</title>
+<title>🔥 {label} · پنل عقاب</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
+@keyframes fireBG{{
+    0%{{background-position:0% 50%}}
+    25%{{background-position:50% 0%}}
+    50%{{background-position:100% 50%}}
+    75%{{background-position:50% 100%}}
+    100%{{background-position:0% 50%}}
+}}
+@keyframes flameFlicker{{
+    0%{{opacity:0.6;transform:scale(1) rotate(0deg)}}
+    25%{{opacity:0.8;transform:scale(1.02) rotate(2deg)}}
+    50%{{opacity:0.5;transform:scale(0.98) rotate(-1deg)}}
+    75%{{opacity:0.9;transform:scale(1.01) rotate(1deg)}}
+    100%{{opacity:0.6;transform:scale(1) rotate(0deg)}}
+}}
+@keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.25}}}}
 body{{
     font-family:'Vazirmatn',sans-serif;
-    background:linear-gradient(135deg,#0a0a1a,#1a0a2e,#2a0a4a);
     min-height:100vh;
     display:flex;
     align-items:center;
@@ -927,64 +1045,73 @@ body{{
     color:#F0EEFF;
     position:relative;
     overflow-x:hidden;
+    background:linear-gradient(135deg,#1a0505,#2a0a0a,#3d0f0a,#2a0505,#1a0a0a);
+    background-size:400% 400%;
+    animation:fireBG 8s ease infinite;
 }}
-.bg-fx{{
-    position:fixed;inset:0;
-    background:radial-gradient(ellipse 70% 50% at 30% 20%,rgba(139,92,246,0.05),transparent 60%),
-               radial-gradient(ellipse 60% 40% at 70% 80%,rgba(236,72,153,0.03),transparent 60%);
-    z-index:0;
-    pointer-events:none;
+.fire-particles{{
+    position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
 }}
-.eagle-bg{{
-    position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.03;font-size:300px;
-    display:flex;align-items:center;justify-content:center;color:#F0EEFF;
+.fire-particle{{
+    position:absolute;
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(255,120,50,0.4),rgba(255,50,0,0));
+    width:6px;height:6px;
+    animation:floatFire 12s ease-in-out infinite;
 }}
-.orb{{
-    position:fixed;border-radius:50%;filter:blur(120px);z-index:0;animation:float 12s ease-in-out infinite;pointer-events:none;
+@keyframes floatFire{{
+    0%{{transform:translateY(100vh) scale(0) rotate(0deg);opacity:0}}
+    20%{{opacity:1}}
+    80%{{opacity:1}}
+    100%{{transform:translateY(-10vh) scale(1.5) rotate(720deg);opacity:0}}
 }}
-.orb1{{width:400px;height:400px;background:rgba(139,92,246,0.04);top:-150px;right:-100px}}
-.orb2{{width:300px;height:300px;background:rgba(236,72,153,0.03);bottom:-100px;left:-80px;animation-delay:6s}}
-@keyframes float{{0%,100%{{transform:translateY(0)}}50%{{transform:translateY(-30px)}}}}
+.fire-glow{{
+    position:fixed;border-radius:50%;filter:blur(150px);z-index:0;animation:flameFlicker 3s ease-in-out infinite;pointer-events:none;
+}}
+.glow1{{width:500px;height:500px;background:rgba(255,80,20,0.06);top:-200px;right:-100px}}
+.glow2{{width:400px;height:400px;background:rgba(255,150,50,0.05);bottom:-100px;left:-80px;animation-delay:2s}}
+.glow3{{width:300px;height:300px;background:rgba(200,50,0,0.04);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:4s}}
 .card{{
     position:relative;z-index:10;
-    background:rgba(20,20,50,0.7);
+    background:rgba(20,8,8,0.75);
     backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
-    border:1px solid rgba(139,92,246,0.12);
+    border:1px solid rgba(255,100,50,0.15);
     border-radius:28px;
     padding:40px 38px 34px;
-    max-width:480px;width:100%;
-    box-shadow:0 0 100px rgba(139,92,246,0.04),0 25px 70px rgba(0,0,0,0.6);
+    max-width:500px;width:100%;
+    box-shadow:0 0 100px rgba(255,80,20,0.05),0 25px 70px rgba(0,0,0,0.7);
     animation:cardIn 0.6s ease;
 }}
 @keyframes cardIn{{from{{opacity:0;transform:translateY(30px) scale(0.96)}}to{{opacity:1;transform:translateY(0) scale(1)}}}}
 .brand{{
     display:flex;align-items:center;gap:14px;margin-bottom:28px;
-    padding-bottom:18px;border-bottom:1px solid rgba(139,92,246,0.08);
+    padding-bottom:18px;border-bottom:1px solid rgba(255,100,50,0.08);
 }}
 .brand-icon{{
     width:52px;height:52px;border-radius:16px;
-    background:linear-gradient(135deg,#8B5CF6,#EC4899);
+    background:linear-gradient(135deg,#FF6B35,#FF4500,#FF8C00);
     display:flex;align-items:center;justify-content:center;
     font-size:28px;flex-shrink:0;
-    box-shadow:0 0 40px rgba(139,92,246,0.15);
+    box-shadow:0 0 50px rgba(255,80,20,0.2),0 0 100px rgba(255,80,20,0.05);
+    animation:flameFlicker 2s ease-in-out infinite;
 }}
 .brand-text .name{{
     font-size:18px;font-weight:800;
-    background:linear-gradient(135deg,#A78BFA,#EC4899);
+    background:linear-gradient(135deg,#FF8C00,#FF4500,#FF6B35);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }}
-.brand-text .sub{{font-size:10.5px;color:#5A4A7A;margin-top:2px;-webkit-text-fill-color:#5A4A7A}}
+.brand-text .sub{{font-size:10.5px;color:#8A4A3A;margin-top:2px;-webkit-text-fill-color:#8A4A3A}}
 .user-header{{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}}
 .user-name{{font-size:24px;font-weight:800;color:#F0EEFF;display:flex;align-items:center;gap:8px}}
-.user-name .eagle{{font-size:20px}}
+.user-name .fire{{font-size:20px}}
 .status{{
     display:inline-flex;align-items:center;gap:5px;
     padding:5px 14px;border-radius:20px;
     font-size:12px;font-weight:700;
 }}
 .status.active{{
-    background:rgba(16,185,129,0.12);color:#34D399;
-    border:1px solid rgba(16,185,129,0.15);
+    background:rgba(255,80,20,0.12);color:#FF8C00;
+    border:1px solid rgba(255,80,20,0.15);
 }}
 .status.inactive{{
     background:rgba(239,68,68,0.12);color:#F87171;
@@ -994,10 +1121,10 @@ body{{
     background:rgba(255,255,255,0.02);
     border:1px solid rgba(255,255,255,0.04);
     border-radius:10px;padding:8px 12px;
-    font-size:10px;font-family:monospace;color:#5A4A7A;
+    font-size:10px;font-family:monospace;color:#8A4A3A;
     word-break:break-all;margin:6px 0 16px;cursor:pointer;transition:.15s;
 }}
-.uuid-box:hover{{background:rgba(139,92,246,0.05);border-color:rgba(139,92,246,0.1)}}
+.uuid-box:hover{{background:rgba(255,80,20,0.05);border-color:rgba(255,80,20,0.1)}}
 .info-grid{{display:grid;gap:10px;margin:16px 0}}
 .info-item{{
     background:rgba(255,255,255,0.02);
@@ -1007,16 +1134,16 @@ body{{
     transition:.15s;
 }}
 .info-item:hover{{background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.06)}}
-.info-label{{font-size:12px;color:#7A6A9A;display:flex;align-items:center;gap:6px}}
-.info-label i{{font-size:15px;color:#8B5CF6}}
+.info-label{{font-size:12px;color:#8A4A3A;display:flex;align-items:center;gap:6px}}
+.info-label i{{font-size:15px;color:#FF6B35}}
 .info-value{{font-size:14px;font-weight:700;color:#F0EEFF}}
-.info-value.used{{color:#A78BFA}}
+.info-value.used{{color:#FF8C00}}
 .info-value.remain{{color:#34D399}}
 .info-value.proto{{
     font-size:11px;
-    background:rgba(139,92,246,0.08);
+    background:rgba(255,80,20,0.08);
     padding:4px 12px;border-radius:8px;
-    border:1px solid rgba(139,92,246,0.08);
+    border:1px solid rgba(255,80,20,0.08);
 }}
 .progress{{margin:18px 0 20px}}
 .progress-bar{{
@@ -1025,10 +1152,10 @@ body{{
 }}
 .progress-fill{{
     height:100%;border-radius:5px;
-    background:linear-gradient(90deg,#8B5CF6,#EC4899);
+    background:linear-gradient(90deg,#FF6B35,#FF4500,#FF8C00);
     width:{percent:.1f}%;transition:width 1s ease;
 }}
-.progress-text{{display:flex;justify-content:space-between;font-size:11px;color:#7A6A9A;margin-top:6px}}
+.progress-text{{display:flex;justify-content:space-between;font-size:11px;color:#8A4A3A;margin-top:6px}}
 .progress-text .pct{{font-weight:700;color:#F0EEFF}}
 .vless-section{{
     background:rgba(255,255,255,0.02);
@@ -1036,16 +1163,16 @@ body{{
     border-radius:12px;padding:14px 16px;margin:16px 0;
 }}
 .vless-label{{
-    font-size:10px;color:#7A6A9A;font-weight:700;
+    font-size:10px;color:#8A4A3A;font-weight:700;
     text-transform:uppercase;letter-spacing:.06em;
     display:flex;align-items:center;gap:6px;margin-bottom:8px;
 }}
-.vless-label i{{color:#A78BFA;font-size:13px}}
+.vless-label i{{color:#FF6B35;font-size:13px}}
 .vless-link{{
-    font-family:monospace;font-size:10px;color:#A78BFA;
+    font-family:monospace;font-size:10px;color:#FF8C00;
     word-break:break-all;line-height:1.8;
-    background:rgba(0,0,0,0.2);padding:10px 12px;
-    border-radius:8px;border:1px solid rgba(139,92,246,0.06);
+    background:rgba(0,0,0,0.3);padding:10px 12px;
+    border-radius:8px;border:1px solid rgba(255,80,20,0.06);
 }}
 .warning-box{{
     background:rgba(239,68,68,0.06);
@@ -1070,14 +1197,14 @@ body{{
 }}
 .btn i{{font-size:14px}}
 .btn-primary{{
-    background:linear-gradient(135deg,#8B5CF6,#EC4899);
-    color:#fff;box-shadow:0 4px 20px rgba(139,92,246,0.2);
+    background:linear-gradient(135deg,#FF6B35,#FF4500);
+    color:#fff;box-shadow:0 4px 20px rgba(255,80,20,0.2);
 }}
-.btn-primary:hover{{transform:translateY(-2px);box-shadow:0 8px 30px rgba(139,92,246,0.3)}}
+.btn-primary:hover{{transform:translateY(-2px);box-shadow:0 8px 30px rgba(255,80,20,0.3)}}
 .btn-secondary{{
     background:rgba(255,255,255,0.04);
     border:1px solid rgba(255,255,255,0.06);
-    color:#8A7AAA;
+    color:#8A4A3A;
 }}
 .btn-secondary:hover{{background:rgba(255,255,255,0.08);color:#F0EEFF}}
 .btn-success{{
@@ -1089,14 +1216,14 @@ body{{
 .footer{{
     margin-top:22px;padding-top:16px;
     border-top:1px solid rgba(255,255,255,0.03);
-    text-align:center;font-size:10px;color:#5A4A7A;
+    text-align:center;font-size:10px;color:#5A3A2A;
 }}
-.footer .eagle{{color:#A78BFA;font-weight:700}}
+.footer .eagle{{color:#FF6B35;font-weight:700}}
 .toast{{
     position:fixed;bottom:30px;left:50%;
     transform:translateX(-50%) translateY(60px);
-    background:rgba(20,20,50,0.9);backdrop-filter:blur(20px);
-    border:1px solid rgba(139,92,246,0.12);
+    background:rgba(20,8,8,0.9);backdrop-filter:blur(20px);
+    border:1px solid rgba(255,80,20,0.12);
     color:#F0EEFF;border-radius:12px;
     padding:12px 22px;font-size:13px;
     opacity:0;transition:all .3s;z-index:999;pointer-events:none;
@@ -1105,6 +1232,7 @@ body{{
 }}
 .toast.show{{opacity:1;transform:translateX(-50%) translateY(0)}}
 .toast.ok{{border-color:rgba(16,185,129,0.2);color:#34D399}}
+.conn-status-dot{{display:inline-block;width:8px;height:8px;border-radius:50%;background:#34D399;animation:pulse 1.5s infinite;margin-left:3px}}
 @media(max-width:520px){{
     .card{{padding:28px 20px 24px}}
     .user-name{{font-size:20px}}
@@ -1115,23 +1243,36 @@ body{{
 </style>
 </head>
 <body>
-<div class="bg-fx"></div>
-<div class="eagle-bg">🦅</div>
-<div class="orb orb1"></div><div class="orb orb2"></div>
+<div class="fire-particles">
+    <div class="fire-particle" style="left:5%;animation-delay:0s;width:8px;height:8px"></div>
+    <div class="fire-particle" style="left:15%;animation-delay:2s;width:5px;height:5px"></div>
+    <div class="fire-particle" style="left:25%;animation-delay:4s;width:10px;height:10px"></div>
+    <div class="fire-particle" style="left:35%;animation-delay:1s;width:6px;height:6px"></div>
+    <div class="fire-particle" style="left:45%;animation-delay:5s;width:7px;height:7px"></div>
+    <div class="fire-particle" style="left:55%;animation-delay:3s;width:9px;height:9px"></div>
+    <div class="fire-particle" style="left:65%;animation-delay:6s;width:5px;height:5px"></div>
+    <div class="fire-particle" style="left:75%;animation-delay:2s;width:8px;height:8px"></div>
+    <div class="fire-particle" style="left:85%;animation-delay:4s;width:6px;height:6px"></div>
+    <div class="fire-particle" style="left:95%;animation-delay:7s;width:7px;height:7px"></div>
+</div>
+<div class="fire-glow glow1"></div><div class="fire-glow glow2"></div><div class="fire-glow glow3"></div>
 <div class="toast" id="toast"></div>
 <div class="card">
     <div class="brand">
-        <div class="brand-icon">🦅</div>
+        <div class="brand-icon">🔥</div>
         <div class="brand-text"><div class="name">پنل عقاب</div><div class="sub">اطلاعات اشتراک</div></div>
     </div>
     <div class="user-header">
-        <div class="user-name"><span class="eagle">🦅</span> {label}</div>
+        <div class="user-name"><span class="fire">🔥</span> {label}</div>
         <span class="status {'active' if is_allowed else 'inactive'}">
             <i class="ti {'ti-circle-check' if is_allowed else 'ti-circle-x'}"></i>
             {'فعال' if is_allowed else 'غیرفعال'}
         </span>
     </div>
     <div class="uuid-box" onclick="copyUUID()" title="کلیک برای کپی UUID">🔑 {uuid}</div>
+    
+    {conns_html}
+    
     <div class="info-grid">
         <div class="info-item"><span class="info-label"><i class="ti ti-database"></i> مصرف</span><span class="info-value used">{used_fmt}</span></div>
         <div class="info-item"><span class="info-label"><i class="ti ti-package"></i> سهمیه</span><span class="info-value">{limit_fmt}</span></div>
@@ -1155,7 +1296,7 @@ body{{
         <button class="btn btn-success" onclick="copySub()"><i class="ti ti-link"></i> کپی ساب‌لینک</button>
         <button class="btn btn-secondary" onclick="showQR()"><i class="ti ti-qrcode"></i> QR</button>
     </div>
-    <div class="footer"><span class="eagle">🦅</span> پنل عقاب · اطلاعات شخصی شما محفوظ است</div>
+    <div class="footer"><span class="eagle">🔥</span> پنل عقاب · اطلاعات شخصی شما محفوظ است</div>
 </div>
 <script>
 const vless = `{vless_link}`;
