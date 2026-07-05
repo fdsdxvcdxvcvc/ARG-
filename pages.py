@@ -190,7 +190,7 @@ body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#0a0a1
 .pulse{animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 
-.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+.stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:22px}
 .stat-card{background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--card-b);border-radius:var(--radius);padding:18px 16px;transition:all .3s;text-align:center;position:relative;overflow:hidden}
 .stat-card:hover{border-color:var(--card-bh);transform:translateY(-3px);box-shadow:var(--shadow)}
 .stat-card .icon{font-size:28px;margin-bottom:6px;display:block}
@@ -442,6 +442,7 @@ select.fi{appearance:none;cursor:pointer}
     <div class="stat-card blue"><span class="icon">👥</span><div class="number" id="total-users">۰</div><div class="label">کل کاربران</div><div class="sub">ثبت‌شده</div><div class="bar"></div></div>
     <div class="stat-card purple"><span class="icon">📊</span><div class="number" id="total-usage">۰</div><div class="label">مصرف کل</div><div class="sub">مگابایت</div><div class="bar"></div></div>
     <div class="stat-card pink"><span class="icon">📱</span><div class="number" id="active-devices">۰</div><div class="label">دستگاه‌های فعال</div><div class="sub">متصل</div><div class="bar"></div></div>
+    <div class="stat-card amber"><span class="icon">⛔</span><div class="number" id="inactive-count">۰</div><div class="label">غیرفعال</div><div class="sub">غیرفعال</div><div class="bar"></div></div>
     <div class="stat-card amber"><span class="icon">🏆</span><div class="number" id="top-user-label" style="font-size:16px">-</div><div class="label">پر مصرف‌ترین کاربر</div><div class="sub" id="top-user-usage">۰</div><div class="bar"></div></div>
   </div>
 
@@ -983,20 +984,20 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
     if active_connections > 0:
         conns_html = f"""
         <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:12px 14px;margin:12px 0">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:#7A6A9A">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:#8A4A3A">
                 <span class="conn-status-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34D399;animation:pulse 1.5s infinite"></span>
                 <span style="font-weight:700;color:#34D399">{active_connections} دستگاه متصل</span>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:6px">
         """
-        for conn in active_connections_list[:10]:  # حداکثر 10 تا نمایش بده
+        for conn in active_connections_list[:10]:
             ip = conn.get('ip', 'نامشخص')
             conns_html += f"""
-                <span style="font-family:monospace;font-size:10px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.06);padding:3px 10px;border-radius:6px;color:#8A7AAA">🔵 {ip}</span>
+                <span style="font-family:monospace;font-size:10px;background:rgba(255,80,20,0.06);border:1px solid rgba(255,80,20,0.06);padding:3px 10px;border-radius:6px;color:#8A4A3A">🔵 {ip}</span>
             """
         if len(active_connections_list) > 10:
             conns_html += f"""
-                <span style="font-family:monospace;font-size:10px;background:rgba(139,92,246,0.04);padding:3px 10px;border-radius:6px;color:#5A4A7A">+{len(active_connections_list)-10} بیشتر</span>
+                <span style="font-family:monospace;font-size:10px;background:rgba(255,80,20,0.04);padding:3px 10px;border-radius:6px;color:#5A3A2A">+{len(active_connections_list)-10} بیشتر</span>
             """
         conns_html += """
             </div>
@@ -1005,7 +1006,7 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
     else:
         conns_html = f"""
         <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:10px 14px;margin:12px 0;text-align:center">
-            <span style="font-size:11px;color:#5A4A7A">🔴 بدون اتصال فعال</span>
+            <span style="font-size:11px;color:#5A3A2A">🔴 بدون اتصال فعال</span>
         </div>
         """
     
