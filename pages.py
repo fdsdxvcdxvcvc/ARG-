@@ -1,4 +1,4 @@
-# pages.py - پنل عقاب (نسخه کامل با تم RGB و تنظیمات)
+# pages.py - پنل عقاب (نسخه کامل با تم RGB کل پنل + بکاپ)
 
 LOGIN_HTML = r"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -13,10 +13,11 @@ LOGIN_HTML = r"""<!DOCTYPE html>
 @keyframes fireBG{0%{background-position:0% 50%}25%{background-position:50% 0%}50%{background-position:100% 50%}75%{background-position:50% 100%}100%{background-position:0% 50%}}
 @keyframes flameFlicker{0%{opacity:0.6;transform:scale(1)}50%{opacity:1;transform:scale(1.02)}100%{opacity:0.6;transform:scale(1)}}
 @keyframes rgbBG{0%{background:#1a0505}25%{background:#050a1a}50%{background:#1a0a05}75%{background:#0a051a}100%{background:#1a0505}}
+@keyframes rgbBGLight{0%{background:#f5e6e0}25%{background:#e0e8f5}50%{background:#f0e8d5}75%{background:#e8d5f0}100%{background:#f5e6e0}}
 :root{--bg:#0a0a1a;--card:rgba(20,10,10,0.85);--accent:#FF6B35;--accent2:#FF8C00;--text:#F0EEFF;--dim:#8A4A3A;--mid:#A06040;--border:rgba(255,100,50,0.2)}
 [data-theme="white"]{--bg:#F5E6E0;--card:rgba(255,245,240,0.85);--accent:#E05A2A;--accent2:#CC5500;--text:#2A0A05;--dim:#8A5A4A;--mid:#6A3A2A;--border:rgba(200,80,40,0.2)}
 body.rgb-mode{background:linear-gradient(135deg,#1a0505,#050a1a,#1a0a05,#0a051a,#1a0505) !important;background-size:400% 400% !important;animation:rgbBG 4s ease infinite !important}
-[data-theme="white"] body.rgb-mode{background:linear-gradient(135deg,#f5e6e0,#e0e8f5,#f0e8d5,#e8d5f0,#f5e6e0) !important;background-size:400% 400% !important;animation:rgbBG 4s ease infinite !important}
+[data-theme="white"] body.rgb-mode{background:linear-gradient(135deg,#f5e6e0,#e0e8f5,#f0e8d5,#e8d5f0,#f5e6e0) !important;background-size:400% 400% !important;animation:rgbBGLight 4s ease infinite !important}
 html,body{height:100%;overflow:hidden}
 body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#1a0505,#2a0a0a,#3d0f0a,#2a0505,#1a0a0a);background-size:400% 400%;animation:fireBG 8s ease infinite;display:flex;align-items:center;justify-content:center;padding:20px;transition:background .3s}
 [data-theme="white"] body{background:linear-gradient(135deg,#F5E6E0,#E8D5CC,#F0D5C8)}
@@ -150,6 +151,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 @keyframes flamePulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
 @keyframes rgbBG{0%{background:#1a0505}25%{background:#050a1a}50%{background:#1a0a05}75%{background:#0a051a}100%{background:#1a0505}}
 @keyframes rgbBGLight{0%{background:#f5e6e0}25%{background:#e0e8f5}50%{background:#f0e8d5}75%{background:#e8d5f0}100%{background:#f5e6e0}}
+@keyframes rgbShadow{0%{box-shadow:0 8px 32px rgba(255,0,0,0.3),0 0 60px rgba(255,80,20,0.03)}25%{box-shadow:0 8px 32px rgba(0,0,255,0.3),0 0 60px rgba(80,20,255,0.03)}50%{box-shadow:0 8px 32px rgba(0,255,0,0.3),0 0 60px rgba(20,255,80,0.03)}75%{box-shadow:0 8px 32px rgba(255,0,255,0.3),0 0 60px rgba(255,20,200,0.03)}100%{box-shadow:0 8px 32px rgba(255,0,0,0.3),0 0 60px rgba(255,80,20,0.03)}}
 html,body{height:100%}
 body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#1a0505,#2a0a0a,#3d0f0a,#2a0505,#1a0a0a);background-size:400% 400%;animation:fireBG 8s ease infinite;color:var(--t1);min-height:100vh;display:flex;font-size:14px;transition:background .3s,color .3s}
 [data-theme="white"] body{background:linear-gradient(135deg,#F5E6E0,#E8D5CC,#F0D5C8)}
@@ -159,9 +161,17 @@ body.rgb-mode{background:linear-gradient(135deg,#1a0505,#050a1a,#1a0a05,#0a051a,
 .fg1{width:600px;height:600px;background:rgba(255,80,20,0.04);top:-250px;right:-150px}
 .fg2{width:450px;height:450px;background:rgba(255,150,50,0.03);bottom:-150px;left:-100px;animation-delay:1s}
 .fg3{width:300px;height:300px;background:rgba(200,50,0,0.03);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:2s}
+/* ===== RGB برای Sidebar ===== */
+body.rgb-mode .sidebar{animation:rgbShadow 3s ease infinite !important;border-color:rgba(255,0,0,0.2) !important}
+body.rgb-mode .sidebar .logo{border-color:rgba(255,0,0,0.2) !important}
+body.rgb-mode .sidebar .sb-foot{border-color:rgba(255,0,0,0.2) !important}
+body.rgb-mode .stat-card{border-color:rgba(255,0,0,0.15) !important}
+body.rgb-mode .user-card{border-color:rgba(255,0,0,0.15) !important}
+body.rgb-mode .conn-card{border-color:rgba(255,0,0,0.15) !important}
+body.rgb-mode .settings-card{border-color:rgba(255,0,0,0.15) !important}
 @keyframes orbFloat{0%,100%{transform:translate(0,0)}33%{transform:translate(40px,-40px)}66%{transform:translate(-30px,30px)}}
 
-.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-left:1px solid var(--card-b);display:flex;flex-direction:column;flex-shrink:0;position:fixed;right:0;top:0;bottom:0;z-index:200;transition:transform .3s cubic-bezier(.4,0,.2,1),background .3s;box-shadow:var(--shadow)}
+.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-left:1px solid var(--card-b);display:flex;flex-direction:column;flex-shrink:0;position:fixed;right:0;top:0;bottom:0;z-index:200;transition:transform .3s cubic-bezier(.4,0,.2,1),background .3s,box-shadow .3s;box-shadow:var(--shadow)}
 .logo{display:flex;align-items:center;gap:14px;padding:22px 18px 18px;border-bottom:1px solid var(--card-b)}
 .logo-icon{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#FF6B35,#FF4500);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 0 40px rgba(255,80,20,0.15);animation:flamePulse 2s ease-in-out infinite}
 .logo-name{font-size:15px;font-weight:800;background:linear-gradient(135deg,#FF8C00,#FF4500);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -509,12 +519,12 @@ select.fi{appearance:none;cursor:pointer}
   <div class="settings-card">
     <div class="title"><i class="ti ti-color-swatch"></i> تنظیمات ظاهری</div>
     <div class="toggle-row">
-      <div class="toggle-label"><i class="ti ti-color-palette" style="background:linear-gradient(135deg,#ff0000,#00ff00,#0000ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent"></i> تم RGB متحرک</div>
+      <div class="toggle-label"><i class="ti ti-color-palette" style="background:linear-gradient(135deg,#ff0000,#00ff00,#0000ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent"></i> تم RGB متحرک (کل پنل)</div>
       <div class="switch" id="rgb-switch" onclick="toggleRGB()">
         <div class="slider"></div>
       </div>
     </div>
-    <div style="margin-top:12px;font-size:10px;color:var(--t3)">💡 با فعال کردن این گزینه، رنگ پنل هر ۲ ثانیه به صورت آرام تغییر میکند</div>
+    <div style="margin-top:12px;font-size:10px;color:var(--t3)">💡 با فعال کردن این گزینه، رنگ کل پنل هر ۲ ثانیه به صورت آرام تغییر میکند</div>
   </div>
 </section>
 
@@ -599,7 +609,7 @@ async function toggleRGB() {
     const data = await r.json();
     rgbMode = data.rgb_mode;
     updateRGBUI();
-    toast(rgbMode ? '🌈 تم RGB فعال شد' : '🌙 تم RGB غیرفعال شد', 'ok');
+    toast(rgbMode ? '🌈 تم RGB کل پنل فعال شد' : '🌙 تم RGB غیرفعال شد', 'ok');
   } catch(e) {
     toast('خطا در تغییر تنظیمات', 'err');
   }
@@ -1003,11 +1013,15 @@ async function restoreBackup(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error();
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast(err.detail || 'خطا در بازیابی', 'err');
+      return;
+    }
     toast('✅ بکاپ با موفقیت بازیابی شد', 'ok');
     setTimeout(() => location.reload(), 1500);
   } catch(e) {
-    toast('خطا در بازیابی بکاپ', 'err');
+    toast('خطا در بازیابی بکاپ: ' + e.message, 'err');
   }
   event.target.value = '';
 }
