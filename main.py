@@ -189,7 +189,11 @@ def generate_uuid() -> str:
 def now_ir() -> datetime:
     return datetime.now(IRAN_TZ)
 
-def generate_vless_link(uuid: str, host: str, remark: str = "🔥 رایگان - عقاب", protocol: str = DEFAULT_PROTOCOL, fingerprint: str = "chrome", port: int = 443) -> str:
+def generate_vless_link(uuid: str, host: str, remark: str = "", protocol: str = DEFAULT_PROTOCOL, fingerprint: str = "chrome", port: int = 443) -> str:
+    # ===== اسم کانفیگ برای کلاینت =====
+    if not remark:
+        remark = "عقاب-رایگان"
+    
     if protocol == "vless-ws":
         path = f"/ws/{uuid}"
         params = {
@@ -345,13 +349,17 @@ async def subscription_single(uuid: str):
         </html>
         """, status_code=404)
     
-    # ===== محاسبه اتصالات فعال (درست) =====
+    # ===== محاسبه اتصالات فعال (دقیق - هر IP جدا) =====
     active_connections_list = []
     for c in connections.values():
         if c.get("uuid") == uuid:
             active_connections_list.append(c)
     
     active_connections_count = len(active_connections_list)
+    
+    # ===== اسم کانفیگ برای کلاینت =====
+    label = link.get("label", "کاربر")
+    remark = f"عقاب-رایگان-{label}"
     
     link_data = {
         **link,
@@ -361,7 +369,7 @@ async def subscription_single(uuid: str):
         "vless_link": generate_vless_link(
             uuid, 
             get_host(), 
-            remark="🔥 رایگان - عقاب", 
+            remark=remark,
             protocol=link.get("protocol", DEFAULT_PROTOCOL),
             fingerprint=link.get("fingerprint", "chrome"),
             port=link.get("port", 443)
@@ -381,7 +389,9 @@ async def subscription_all(_=Depends(require_auth)):
             if is_link_allowed(d):
                 fp = d.get("fingerprint", "chrome")
                 port = d.get("port", 443)
-                lines.append(generate_vless_link(uid, host, remark="🔥 رایگان - عقاب", protocol=d.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port))
+                label = d.get("label", "کاربر")
+                remark = f"عقاب-رایگان-{label}"
+                lines.append(generate_vless_link(uid, host, remark=remark, protocol=d.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port))
     content = base64.b64encode("\n".join(lines).encode()).decode()
     return Response(content=content, media_type="text/plain")
 
@@ -519,7 +529,9 @@ async def sub_group_subscription(uuid_key: str, request: Request):
             if link and is_link_allowed(link):
                 fp = link.get("fingerprint", "chrome")
                 port = link.get("port", 443)
-                lines.append(generate_vless_link(lid, host, remark="🔥 رایگان - عقاب", protocol=link.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port))
+                label = link.get("label", "کاربر")
+                remark = f"عقاب-رایگان-{label}"
+                lines.append(generate_vless_link(lid, host, remark=remark, protocol=link.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port))
 
     content = base64.b64encode("\n".join(lines).encode()).decode()
     return Response(
@@ -725,7 +737,9 @@ async def create_link(request: Request, _=Depends(require_auth)):
     log_activity("link", f"کانفیگ «{label}» ساخته شد", "ok")
     host = get_host()
     
-    main_link = generate_vless_link(uid, host, remark="🔥 رایگان - عقاب", protocol=protocol, fingerprint=fingerprint, port=port)
+    # ===== اسم کانفیگ برای کلاینت =====
+    remark = f"عقاب-رایگان-{label}"
+    main_link = generate_vless_link(uid, host, remark=remark, protocol=protocol, fingerprint=fingerprint, port=port)
     warning_link = ""
     
     return {
@@ -748,6 +762,8 @@ async def list_links(_=Depends(require_auth)):
         proto = d.get("protocol", DEFAULT_PROTOCOL)
         fp = d.get("fingerprint", "chrome")
         port = d.get("port", 443)
+        label = d.get("label", "کاربر")
+        remark = f"عقاب-رایگان-{label}"
         result.append({
             "uuid": uid,
             **d,
@@ -757,7 +773,7 @@ async def list_links(_=Depends(require_auth)):
             "expired": is_link_expired(d),
             "has_password": d.get("password_hash") is not None,
             "port": port,
-            "vless_link": generate_vless_link(uid, host, remark="🔥 رایگان - عقاب", protocol=proto, fingerprint=fp, port=port),
+            "vless_link": generate_vless_link(uid, host, remark=remark, protocol=proto, fingerprint=fp, port=port),
             "warning_config": "",
             "sub_url": f"https://{host}/sub/{uid}",
         })
@@ -953,6 +969,8 @@ async def public_sub_data(uuid_key: str, request: Request):
         proto = link.get("protocol", DEFAULT_PROTOCOL)
         fp = link.get("fingerprint", "chrome")
         port = link.get("port", 443)
+        label = link.get("label", "کاربر")
+        remark = f"عقاب-رایگان-{label}"
         links_out.append({
             "uuid": lid,
             "label": link["label"],
@@ -967,7 +985,7 @@ async def public_sub_data(uuid_key: str, request: Request):
             "expires_at": link.get("expires_at"),
             "has_password": link.get("password_hash") is not None,
             "port": port,
-            "vless_link": generate_vless_link(lid, host, remark="🔥 رایگان - عقاب", protocol=proto, fingerprint=fp, port=port),
+            "vless_link": generate_vless_link(lid, host, remark=remark, protocol=proto, fingerprint=fp, port=port),
             "warning_config": "",
             "sub_url": f"https://{host}/sub/{lid}",
             "connections": conn_count,
