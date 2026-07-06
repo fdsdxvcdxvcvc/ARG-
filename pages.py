@@ -1,4 +1,4 @@
-# pages.py - پنل عقاب (نسخه کامل با بنر رایگان + اتصالات دقیق + اسم کانفیگ)
+# pages.py - پنل عقاب (نسخه با مصرف امروز + وضعیت)
 
 LOGIN_HTML = r"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -231,7 +231,6 @@ body{font-family:'Vazirmatn',sans-serif;background:linear-gradient(135deg,#1a050
 .user-card .actions .btn{flex:1;justify-content:center;min-width:fit-content;font-size:10px}
 .user-card .lock-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;color:var(--amber-t);background:var(--amber-bg);padding:2px 8px;border-radius:10px;border:1px solid rgba(245,158,11,0.15)}
 .user-card .warning-box{background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.12);border-radius:6px;padding:5px 8px;margin-top:6px;font-size:7.5px;color:var(--red-t);font-family:monospace;white-space:pre-wrap;max-height:50px;overflow-y:auto;direction:ltr;text-align:left;line-height:1.4}
-.user-card .conn-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;color:#34D399;background:rgba(16,185,129,0.08);padding:2px 8px;border-radius:10px;border:1px solid rgba(16,185,129,0.12)}
 .empty{text-align:center;padding:50px 20px;color:var(--t3)}
 .empty i{font-size:38px;opacity:.3;display:block;margin-bottom:12px}
 
@@ -706,26 +705,33 @@ async function loadUsers() {
       const pct = l.limit_bytes === 0 ? 0 : Math.min(100, (l.used_bytes / l.limit_bytes) * 100);
       const bc = pct > 90 ? '#EF4444' : pct > 70 ? '#F59E0B' : '#FF6B35';
       const active = l.active && !l.expired;
-      const devices = l.max_devices || 0;
       const fp = l.fingerprint || 'chrome';
       const subLink = `https://${host}/sub/${l.uuid}`;
       const hasPassword = l.has_password === true;
       const port = l.port || 443;
       const warningText = l.warning_config || '';
       
-      const connCount = window.connCounts && window.connCounts[l.uuid] ? window.connCounts[l.uuid] : 0;
-      const connBadge = connCount > 0 ? `<span class="conn-badge"><span class="dot dg" style="width:4px;height:4px"></span> ${connCount} متصل</span>` : '';
+      // ===== مصرف امروز =====
+      const todayBytes = l.today_bytes || 0;
+      const todayFmt = fmtB(todayBytes);
+      
+      // ===== آخرین اتصال =====
+      const lastSeen = l.last_connected_at ? new Date(l.last_connected_at).toLocaleString('fa-IR') : '—';
+      
+      // ===== وضعیت =====
+      const statusText = active ? '🟢 آنلاین' : '🔴 آفلاین';
+      const statusClass = active ? 'on' : 'off';
       
       return `<div class="user-card">
         <div class="head">
-          <div class="name">🔥 ${esc(l.label)} ${hasPassword ? '<span class="lock-badge"><i class="ti ti-lock"></i> رمزدار</span>' : ''} ${connBadge}</div>
-          <span class="status ${active ? 'on' : 'off'}">${active ? '🟢 آنلاین' : '🔴 آفلاین'}</span>
+          <div class="name">🔥 ${esc(l.label)} ${hasPassword ? '<span class="lock-badge"><i class="ti ti-lock"></i> رمزدار</span>' : ''}</div>
+          <span class="status ${statusClass}">${statusText}</span>
         </div>
         <div class="uuid">🔑 ${esc(l.uuid)}</div>
         <div class="info">
-          <span>📱 ${devices === 0 ? '∞' : devices + ' دستگاه'}</span>
-          <span>🔑 ${esc(fp)}</span>
-          <span>📅 ${l.expires_at ? new Date(l.expires_at).toLocaleDateString('fa-IR') : 'نامحدود'}</span>
+          <span>📊 امروز: ${todayFmt}</span>
+          <span>📅 آخرین اتصال: ${lastSeen}</span>
+          <span>📱 ${l.max_devices === 0 ? '∞' : l.max_devices + ' دستگاه'}</span>
           <span>🔌 ${port}</span>
         </div>
         <div class="quota-info">
@@ -885,7 +891,6 @@ async function confirmDelete() {
 
 // ===== ساخت کانفیگ جدید =====
 async function saveUser() {
-  // ===== دیالوگ تایید رایگان بودن =====
   if (!confirm('🔥 مطمئن هستید این کانفیگ را رایگان میدهید؟')) {
     return;
   }
@@ -960,8 +965,6 @@ async function loadConnections() {
     const grid = document.getElementById('conns-grid');
     const count = d.count || 0;
     document.getElementById('conn-count').textContent = count + ' اتصال';
-    
-    window.connCounts = {};
     
     if (!count) {
       grid.innerHTML = '<div class="empty"><i class="ti ti-plug-off"></i><p>هیچ اتصال فعالی وجود ندارد</p></div>';
@@ -1053,7 +1056,7 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
     used_fmt = fmt_bytes(used)
     limit_fmt = 'نامحدود' if limit == 0 else fmt_bytes(limit)
     
-    # ===== ساخت لیست اتصالات زنده (دقیق) =====
+    # ===== ساخت لیست اتصالات زنده =====
     conns_html = ""
     if active_connections > 0:
         conns_html = f"""
@@ -1084,7 +1087,6 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
         </div>
         """
     
-    # ===== ساخت لینک =====
     from main import get_host, generate_vless_link
     host = get_host()
     remark = f"عقاب-رایگان-{label}"
@@ -1338,7 +1340,6 @@ body{{
 </style>
 </head>
 <body>
-<!-- ===== بنر رایگان ===== -->
 <div class="free-banner">
     <span>🔥</span>
     <span>✅ این سرویس کاملاً <span class="hl">رایگان</span> است</span>
