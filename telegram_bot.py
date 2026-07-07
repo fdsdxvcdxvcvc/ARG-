@@ -12,7 +12,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMo
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
 # ─── تنظیمات ──────────────────────────────────────────────────────────────────
-PANEL_URL = os.environ.get("PANEL_URL", "http://localhost:8000")
+PANEL_URL = os.environ.get("PANEL_URL", "https://arg-production-3082.up.railway.app")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "123456")
 ALLOWED_USERS = os.environ.get("ALLOWED_USERS", "").split(",")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
