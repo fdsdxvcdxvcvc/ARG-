@@ -90,7 +90,7 @@ SETTINGS: dict = {
     "telegram_enabled": False,
     "telegram_bot_running": False,
     "telegram_bot_pid": None,
-    "telegram_allowed_users": [],  # لیست کاربران مجاز تلگرام
+    "telegram_allowed_users": [],
     "default_protocol": "vless-ws",
     "default_port": 443,
 }
@@ -249,18 +249,15 @@ async def start_bot_process():
         if SETTINGS.get("telegram_bot_running", False):
             return True
         
-        # محیط ربات
         env = os.environ.copy()
         env["PANEL_URL"] = f"http://localhost:{CONFIG['port']}"
         env["ADMIN_PASSWORD"] = CONFIG["admin_password"]
         env["TELEGRAM_BOT_TOKEN"] = SETTINGS.get("telegram_token", "")
         
-        # کاربران مجاز
         allowed_users = SETTINGS.get("telegram_allowed_users", [])
         if allowed_users:
             env["ALLOWED_USERS"] = ",".join(str(u) for u in allowed_users)
         
-        # استارت ربات
         proc = subprocess.Popen(
             [sys.executable, "telegram_bot.py"],
             stdout=subprocess.DEVNULL,
@@ -435,28 +432,24 @@ async def toggle_telegram_bot(request: Request, _=Depends(require_auth)):
     if enabled and (not token or not chat_id):
         raise HTTPException(status_code=400, detail="برای فعال‌سازی، توکن و چت‌آیدی الزامی است")
     
-    # ذخیره تنظیمات
     SETTINGS["telegram_token"] = token if token else None
     SETTINGS["telegram_chat_id"] = chat_id if chat_id else None
     SETTINGS["telegram_enabled"] = enabled
     SETTINGS["telegram_allowed_users"] = allowed_users if isinstance(allowed_users, list) else []
     
     if enabled:
-        # تست اتصال
         test_msg = await send_telegram_message("🦅 <b>ربات پنل عقاب در حال راه‌اندازی...</b>")
         if not test_msg:
             SETTINGS["telegram_enabled"] = False
             await save_state()
             raise HTTPException(status_code=400, detail="ارسال پیام تست ناموفق! توکن یا چت‌آیدی اشتباه است.")
         
-        # استارت ربات
         if not SETTINGS.get("telegram_bot_running"):
             await start_bot_process()
         
         await send_telegram_message("✅ <b>ربات پنل عقاب با موفقیت فعال شد!</b>")
         
     else:
-        # غیرفعال کردن ربات
         await stop_bot_process()
         SETTINGS["telegram_enabled"] = False
     
@@ -476,7 +469,6 @@ async def toggle_telegram_bot(request: Request, _=Depends(require_auth)):
 
 @app.post("/api/telegram/send_test")
 async def send_test_message(request: Request, _=Depends(require_auth)):
-    """ارسال پیام تست به تلگرام"""
     msg = "🦅 <b>پیام تست از پنل عقاب</b>\n\n✅ اتصال برقرار است."
     result = await send_telegram_message(msg)
     if result:
@@ -503,7 +495,6 @@ async def toggle_rgb(request: Request, _=Depends(require_auth)):
 
 @app.post("/api/settings/password")
 async def change_password(request: Request, _=Depends(require_auth)):
-    """تغییر رمز پنل"""
     body = await request.json()
     old_password = body.get("old_password", "").strip()
     new_password = body.get("new_password", "").strip()
@@ -517,17 +508,13 @@ async def change_password(request: Request, _=Depends(require_auth)):
     if hash_password(old_password) != AUTH["password_hash"]:
         raise HTTPException(status_code=403, detail="رمز فعلی اشتباه است")
     
-    # تغییر رمز
     AUTH["password_hash"] = hash_password(new_password)
     CONFIG["admin_password"] = new_password
-    
-    # آپدیت محیط
     os.environ["ADMIN_PASSWORD"] = new_password
     
     await save_state()
     log_activity("settings", "رمز پنل تغییر کرد", "ok")
     
-    # ارسال نوتیفیکیشن به تلگرام
     await send_telegram_message(f"🔑 <b>رمز پنل تغییر کرد!</b>\n\n🔐 رمز جدید: <code>{new_password}</code>")
     
     return {"ok": True, "message": "رمز با موفقیت تغییر کرد"}
@@ -1240,37 +1227,6 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
         connections.pop(conn_id, None)
         await remove_device_connection(uuid, client_ip)
         logger.info(f"🔌 WS closed [{conn_id}] total={len(connections)}")
-
-# ─── XHTTP ──────────────────────────────────────────────────────────────────
-
-try:
-    from xhttp_siz10 import router as xhttp_router
-    app.include_router(xhttp_router)
-except ImportError:
-    pass
-
-# ─── HTTP Proxy ────────────────────────────────────────────────────────────
-
-_HOP = {"connection","keep-alive","proxy-authenticate","proxy-authorization",
-        "te","trailers","transfer-encoding","upgrade","content-encoding","content-length"}
-
-@app.api_route("/proxy/{target_url:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
-async def http_proxy(target_url: str, request: Request):
-    if not target_url.startswith("http"):
-        target_url = "https://" + target_url
-    try:
-        body = await request.body()
-        headers = {k: v for k, v in request.headers.items() if k.lower() not in _HOP and k.lower() != "host"}
-        resp = await http_client.request(method=request.method, url=target_url, headers=headers, content=body)
-        stats["total_bytes"] += len(resp.content)
-        stats["total_requests"] += 1
-        hourly_traffic[now_ir().strftime("%H:00")] += len(resp.content)
-        return Response(content=resp.content, status_code=resp.status_code,
-                        headers={k: v for k, v in resp.headers.items() if k.lower() not in _HOP})
-    except Exception as exc:
-        stats["total_errors"] += 1
-        error_logs.append({"error": str(exc), "url": target_url, "time": datetime.now().isoformat()})
-        raise HTTPException(status_code=502, detail=f"Proxy error: {exc}")
 
 # ─── Subscriptions ─────────────────────────────────────────────────────────
 
