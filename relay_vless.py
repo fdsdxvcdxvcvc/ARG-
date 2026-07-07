@@ -1,4 +1,4 @@
-# relay_vless.py - رله VLESS بهینه شده
+# relay_vless.py - رله VLESS
 
 import asyncio
 import secrets
@@ -22,7 +22,6 @@ from main import (
     device_connections,
     DEVICE_CONNECTIONS_LOCK,
     remove_device_connection,
-    send_telegram_message,
 )
 
 RELAY_BUF = 256 * 1024
@@ -95,16 +94,6 @@ async def check_and_use(uid: str, n: int) -> bool:
         link["used_bytes"] = link.get("used_bytes", 0) + n
         stats["total_bytes"] = stats.get("total_bytes", 0) + n
         hourly_traffic[now_ir().strftime("%H:00")] = hourly_traffic.get(now_ir().strftime("%H:00"), 0) + n
-        
-        limit = link.get("limit_bytes", 0)
-        used = link.get("used_bytes", 0)
-        if limit > 0 and used >= limit * 0.9 and used < limit:
-            asyncio.create_task(send_telegram_message(
-                f"⚠️ <b>هشدار مصرف</b>\n\n"
-                f"📌 کاربر: {link.get('label', 'نامشخص')}\n"
-                f"📊 مصرف: {used / (1024**3):.2f} GB از {limit / (1024**3):.2f} GB\n"
-                f"🔴 <b>{((used / limit) * 100):.1f}%</b>"
-            ))
     return True
 
 async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: str, uid: str):
@@ -187,13 +176,6 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
     
     logger.info(f"✅ WS [{conn_id}] uuid={uuid[:8]}… ip={client_ip} total={len(connections)}")
     log_activity("connection", f"اتصال جدید از {client_ip} (کانفیگ {link.get('label','?')})", "info")
-    
-    asyncio.create_task(send_telegram_message(
-        f"🔌 <b>اتصال جدید</b>\n\n"
-        f"📌 کاربر: {link.get('label', 'نامشخص')}\n"
-        f"🌐 IP: {client_ip}\n"
-        f"⏱️ زمان: {datetime.now().strftime('%H:%M:%S')}"
-    ))
     
     writer = None
 
