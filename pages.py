@@ -168,8 +168,6 @@ body.rgb-mode .stat-card{border-color:rgba(255,0,0,0.15) !important}
 body.rgb-mode .user-card{border-color:rgba(255,0,0,0.15) !important}
 body.rgb-mode .conn-card{border-color:rgba(255,0,0,0.15) !important}
 body.rgb-mode .settings-card{border-color:rgba(255,0,0,0.15) !important}
-@keyframes orbFloat{0%,100%{transform:translate(0,0)}33%{transform:translate(40px,-40px)}66%{transform:translate(-30px,30px)}}
-
 .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--card);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-left:1px solid var(--card-b);display:flex;flex-direction:column;flex-shrink:0;position:fixed;right:0;top:0;bottom:0;z-index:200;transition:transform .3s cubic-bezier(.4,0,.2,1),background .3s,box-shadow .3s;box-shadow:var(--shadow)}
 .logo{display:flex;align-items:center;gap:14px;padding:22px 18px 18px;border-bottom:1px solid var(--card-b)}
 .logo-icon{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#FF6B35,#FF4500);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 0 40px rgba(255,80,20,0.15);animation:flamePulse 2s ease-in-out infinite}
@@ -315,14 +313,12 @@ select.fi{appearance:none;cursor:pointer}
 .switch.on{background:linear-gradient(135deg,#FF6B35,#FF4500)}
 .switch .slider{position:absolute;top:2px;right:2px;width:22px;height:22px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
 .switch.on .slider{right:24px}
-
 .telegram-status{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-size:12px;margin-top:8px}
 .telegram-status.on{background:var(--green-bg);color:var(--green-t);border:1px solid rgba(16,185,129,0.15)}
 .telegram-status.off{background:var(--red-bg);color:var(--red-t);border:1px solid rgba(239,68,68,0.15)}
 .telegram-status .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .telegram-status.on .dot{background:var(--green)}
 .telegram-status.off .dot{background:var(--red)}
-
 @media(max-width:1200px){.stats-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:768px){
@@ -342,107 +338,66 @@ select.fi{appearance:none;cursor:pointer}
 <div class="fire-glow fg3"></div>
 <div class="toast" id="toast"></div>
 
-<!-- ===== مودال ساخت کانفیگ ===== -->
+<!-- مودال‌ها -->
 <div class="modal-bg" id="modal-user">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-user')"><i class="ti ti-x"></i></button>
     <div class="modal-title"><i class="ti ti-user-plus"></i> 🦅 ساخت کانفیگ جدید</div>
-    
     <div class="fg"><label><i class="ti ti-tag"></i> نام کاربری</label><input class="fi" id="user-label" placeholder="مثلاً: کاربر علی"></div>
-    
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
       <div class="fg"><label><i class="ti ti-database"></i> حجم</label><input class="fi" id="user-quota" type="number" min="0.5" step="0.5" value="2"></div>
       <div class="fg"><label><i class="ti ti-ruler"></i> واحد</label><select class="fi" id="user-unit"><option value="GB">GB</option><option value="MB">MB</option></select></div>
       <div class="fg"><label><i class="ti ti-calendar"></i> انقضا (روز)</label><input class="fi" id="user-exp" type="number" min="0" value="30" placeholder="0=نامحدود"></div>
     </div>
-    
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="fg"><label><i class="ti ti-fingerprint"></i> فینگرپرینت</label><select class="fi" id="user-fingerprint"><option value="chrome">Chrome</option><option value="firefox">Firefox</option><option value="safari">Safari</option><option value="edge">Edge</option><option value="random">Random</option><option value="none">None</option></select></div>
       <div class="fg"><label><i class="ti ti-devices"></i> محدودیت دستگاه</label><input class="fi" id="user-devices" type="number" min="0" max="10" value="1" placeholder="0=نامحدود"></div>
     </div>
-    
     <div class="fg"><label><i class="ti ti-settings"></i> پروتکل</label><select class="fi" id="user-protocol"><option value="vless-ws">VLESS (WebSocket)</option><option value="xhttp-stream-up">XHTTP (Stream)</option></select></div>
-    
-    <div class="fg">
-      <label><i class="ti ti-plug"></i> پورت (پیش‌فرض: 443)</label>
-      <input class="fi" id="user-port" type="number" min="1" max="65535" value="443" placeholder="443">
-    </div>
-    
-    <div class="fg">
-      <label><i class="ti ti-lock"></i> رمز کانفیگ (اختیاری)</label>
-      <input class="fi" id="user-password" type="password" placeholder="برای حذف/ویرایش نیاز است" dir="ltr">
-    </div>
-    
+    <div class="fg"><label><i class="ti ti-plug"></i> پورت</label><input class="fi" id="user-port" type="number" min="1" max="65535" value="443"></div>
+    <div class="fg"><label><i class="ti ti-lock"></i> رمز کانفیگ (اختیاری)</label><input class="fi" id="user-password" type="password" placeholder="برای حذف/ویرایش نیاز است" dir="ltr"></div>
     <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn btn-p" onclick="saveUser()" style="flex:2"><i class="ti ti-check"></i> ساخت کانفیگ</button>
+      <button class="btn btn-p" onclick="saveUser()" style="flex:2"><i class="ti ti-check"></i> ساخت</button>
       <button class="btn btn-o" onclick="closeModal('modal-user')" style="flex:1">انصراف</button>
     </div>
   </div>
 </div>
 
-<!-- ===== مودال ویرایش ===== -->
 <div class="modal-bg" id="modal-edit">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-edit')"><i class="ti ti-x"></i></button>
-    <div class="modal-title"><i class="ti ti-edit"></i> 🦅 ویرایش کانفیگ</div>
+    <div class="modal-title"><i class="ti ti-edit"></i> ویرایش کانفیگ</div>
     <input type="hidden" id="edit-uuid">
-    
-    <div class="fg" id="edit-password-section">
-      <label><i class="ti ti-lock"></i> 🔑 رمز کانفیگ (برای ویرایش لازم است)</label>
-      <input class="fi" id="edit-password" type="password" placeholder="رمز کانفیگ را وارد کنید" dir="ltr">
-    </div>
-    
+    <div class="fg" id="edit-password-section"><label><i class="ti ti-lock"></i> رمز کانفیگ</label><input class="fi" id="edit-password" type="password" placeholder="رمز کانفیگ را وارد کنید" dir="ltr"></div>
     <div class="fg"><label><i class="ti ti-tag"></i> نام کاربری</label><input class="fi" id="edit-label" placeholder="نام کاربری"></div>
-    
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-      <div class="fg"><label><i class="ti ti-database"></i> حجم (0=نامحدود)</label><input class="fi" id="edit-quota" type="number" min="0" step="0.5"></div>
+      <div class="fg"><label><i class="ti ti-database"></i> حجم</label><input class="fi" id="edit-quota" type="number" min="0" step="0.5"></div>
       <div class="fg"><label><i class="ti ti-ruler"></i> واحد</label><select class="fi" id="edit-unit"><option value="GB">GB</option><option value="MB">MB</option></select></div>
       <div class="fg"><label><i class="ti ti-calendar"></i> انقضا (روز)</label><input class="fi" id="edit-exp" type="number" min="0" placeholder="0=نامحدود"></div>
     </div>
-    
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="fg"><label><i class="ti ti-fingerprint"></i> فینگرپرینت</label><select class="fi" id="edit-fingerprint"><option value="chrome">Chrome</option><option value="firefox">Firefox</option><option value="safari">Safari</option><option value="edge">Edge</option><option value="random">Random</option><option value="none">None</option></select></div>
       <div class="fg"><label><i class="ti ti-devices"></i> محدودیت دستگاه</label><input class="fi" id="edit-devices" type="number" min="0" max="10" placeholder="0=نامحدود"></div>
     </div>
-    
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="fg"><label><i class="ti ti-settings"></i> پروتکل</label>
-        <select class="fi" id="edit-protocol">
-          <option value="vless-ws">VLESS (WebSocket)</option>
-          <option value="xhttp-stream-up">XHTTP (Stream)</option>
-        </select>
-      </div>
-      <div class="fg"><label><i class="ti ti-toggle-left"></i> وضعیت</label>
-        <select class="fi" id="edit-status">
-          <option value="true">✅ فعال</option>
-          <option value="false">❌ غیرفعال</option>
-        </select>
-      </div>
+      <div class="fg"><label><i class="ti ti-settings"></i> پروتکل</label><select class="fi" id="edit-protocol"><option value="vless-ws">VLESS (WS)</option><option value="xhttp-stream-up">XHTTP (Stream)</option></select></div>
+      <div class="fg"><label><i class="ti ti-toggle-left"></i> وضعیت</label><select class="fi" id="edit-status"><option value="true">فعال</option><option value="false">غیرفعال</option></select></div>
     </div>
-    
-    <div class="fg">
-      <label><i class="ti ti-plug"></i> پورت</label>
-      <input class="fi" id="edit-port" type="number" min="1" max="65535" placeholder="443">
-    </div>
-    
+    <div class="fg"><label><i class="ti ti-plug"></i> پورت</label><input class="fi" id="edit-port" type="number" min="1" max="65535" placeholder="443"></div>
     <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn btn-p" onclick="saveEdit()" style="flex:2"><i class="ti ti-check"></i> ذخیره تغییرات</button>
+      <button class="btn btn-p" onclick="saveEdit()" style="flex:2"><i class="ti ti-check"></i> ذخیره</button>
       <button class="btn btn-o" onclick="closeModal('modal-edit')" style="flex:1">انصراف</button>
     </div>
   </div>
 </div>
 
-<!-- ===== مودال حذف ===== -->
 <div class="modal-bg" id="modal-delete">
   <div class="modal" style="max-width:400px">
     <button class="modal-close" onclick="closeModal('modal-delete')"><i class="ti ti-x"></i></button>
-    <div class="modal-title"><i class="ti ti-trash"></i> 🦅 حذف کانفیگ</div>
+    <div class="modal-title"><i class="ti ti-trash"></i> حذف کانفیگ</div>
     <input type="hidden" id="delete-uuid">
-    <p style="font-size:13px;color:var(--t2);margin-bottom:16px">برای حذف این کانفیگ، رمز آن را وارد کنید.</p>
-    <div class="fg">
-      <label><i class="ti ti-lock"></i> رمز کانفیگ</label>
-      <input class="fi" id="delete-password" type="password" placeholder="رمز کانفیگ را وارد کنید" dir="ltr">
-    </div>
+    <p style="font-size:13px;color:var(--t2);margin-bottom:16px">برای حذف، رمز کانفیگ را وارد کنید.</p>
+    <div class="fg"><label><i class="ti ti-lock"></i> رمز کانفیگ</label><input class="fi" id="delete-password" type="password" placeholder="رمز کانفیگ" dir="ltr"></div>
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn btn-d" onclick="confirmDelete()" style="flex:2"><i class="ti ti-trash"></i> حذف</button>
       <button class="btn btn-o" onclick="closeModal('modal-delete')" style="flex:1">انصراف</button>
@@ -450,14 +405,14 @@ select.fi{appearance:none;cursor:pointer}
   </div>
 </div>
 
-<!-- ===== هدر موبایل ===== -->
+<!-- هدر موبایل -->
 <div class="mob-top">
   <div class="ml"><div class="mob-logo">🦅</div><span class="mob-title">پنل عقاب</span></div>
-  <div class="mob-right"><button class="theme-mob" id="theme-mob-btn" onclick="toggleTheme()"><i class="ti ti-palette" id="theme-mob-icon"></i></button><button class="menu-btn" id="open-sb"><i class="ti ti-menu-2"></i></button></div>
+  <div class="mob-right"><button class="theme-mob" onclick="toggleTheme()"><i class="ti ti-palette"></i></button><button class="menu-btn" id="open-sb"><i class="ti ti-menu-2"></i></button></div>
 </div>
 <div class="overlay" id="overlay"></div>
 
-<!-- ===== سایدبار ===== -->
+<!-- سایدبار -->
 <aside class="sidebar" id="sb">
   <div class="logo"><div class="logo-icon">🦅</div><div><div class="logo-name">پنل عقاب</div><div class="logo-sub">مدیریت کاربران</div></div></div>
   <div class="nav-wrap">
@@ -469,134 +424,97 @@ select.fi{appearance:none;cursor:pointer}
     <div class="nav-it" data-pg="backup"><i class="ti ti-database"></i> بکاپ</div>
   </div>
   <div class="sb-foot">
-    <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-palette" id="theme-icon"></i> <span id="theme-label">تغییر تم</span></button>
+    <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-palette"></i> <span id="theme-label">تغییر تم</span></button>
     <button class="rgb-btn off" id="rgb-btn" onclick="toggleRGB()"><i class="ti ti-color-swatch"></i> <span id="rgb-label">تم RGB</span></button>
     <button class="support-btn" onclick="window.open('https://t.me/+QyEVU0FquFczYjQ0','_blank')"><i class="ti ti-brand-telegram"></i> گروه پشتیبانی</button>
     <button class="logout-btn" onclick="logout()"><i class="ti ti-logout"></i> خروج</button>
   </div>
 </aside>
 
-<!-- ===== محتوای اصلی ===== -->
+<!-- محتوای اصلی -->
 <main class="main">
 <section class="pg on" id="pg-users">
   <div class="topbar">
-    <div>
-      <div class="tb-title"><i class="ti ti-layout-dashboard"></i> داشبورد عقاب</div>
-      <div class="tb-sub" id="last-update">آخرین بروزرسانی: لحظه‌ای</div>
-    </div>
+    <div><div class="tb-title"><i class="ti ti-layout-dashboard"></i> داشبورد</div><div class="tb-sub" id="last-update">آخرین بروزرسانی: لحظه‌ای</div></div>
     <div class="tb-right">
       <span class="badge bg-fire" id="online-badge"><span class="dot dg"></span> ۰ آنلاین</span>
       <button class="btn btn-p" onclick="openModal('modal-user')"><i class="ti ti-plus"></i> کانفیگ جدید</button>
     </div>
   </div>
-
   <div class="stats-grid">
-    <div class="stat-card"><span class="icon">🔥</span><div class="number" id="online-count">۰</div><div class="label">سرویس‌های آنلاین</div><div class="sub">در حال اتصال</div><div class="bar"></div></div>
-    <div class="stat-card"><span class="icon">👥</span><div class="number" id="total-users">۰</div><div class="label">کل کاربران</div><div class="sub">ثبت‌شده</div><div class="bar"></div></div>
-    <div class="stat-card"><span class="icon">📊</span><div class="number" id="total-usage">۰</div><div class="label">مصرف کل</div><div class="sub">مگابایت</div><div class="bar"></div></div>
-    <div class="stat-card"><span class="icon">📱</span><div class="number" id="active-devices">۰</div><div class="label">دستگاه‌های فعال</div><div class="sub">متصل</div><div class="bar"></div></div>
-    <div class="stat-card"><span class="icon">⛔</span><div class="number" id="inactive-count">۰</div><div class="label">غیرفعال</div><div class="sub">غیرفعال</div><div class="bar"></div></div>
-    <div class="stat-card"><span class="icon">🏆</span><div class="number" id="top-user-label" style="font-size:16px">-</div><div class="label">پر مصرف‌ترین کاربر</div><div class="sub" id="top-user-usage">۰</div><div class="bar"></div></div>
+    <div class="stat-card"><span class="icon">🔥</span><div class="number" id="online-count">۰</div><div class="label">سرویس‌های آنلاین</div><div class="bar"></div></div>
+    <div class="stat-card"><span class="icon">👥</span><div class="number" id="total-users">۰</div><div class="label">کل کاربران</div><div class="bar"></div></div>
+    <div class="stat-card"><span class="icon">📊</span><div class="number" id="total-usage">۰</div><div class="label">مصرف کل (MB)</div><div class="bar"></div></div>
+    <div class="stat-card"><span class="icon">📱</span><div class="number" id="active-devices">۰</div><div class="label">دستگاه‌های فعال</div><div class="bar"></div></div>
+    <div class="stat-card"><span class="icon">⛔</span><div class="number" id="inactive-count">۰</div><div class="label">غیرفعال</div><div class="bar"></div></div>
+    <div class="stat-card"><span class="icon">🏆</span><div class="number" id="top-user-label" style="font-size:16px">-</div><div class="label">پر مصرف‌ترین</div><div class="sub" id="top-user-usage">۰</div><div class="bar"></div></div>
   </div>
-
   <div id="users-grid" class="user-grid"><div class="empty"><i class="ti ti-users"></i><p>هیچ کاربری ساخته نشده</p></div></div>
 </section>
 
-<!-- ===== بخش اتصالات ===== -->
 <section class="pg" id="pg-connections">
-  <div class="topbar"><div><div class="tb-title">🔌 اتصالات زنده</div><div class="tb-sub" id="conn-count">۰ اتصال</div></div><div class="tb-right"><span class="badge bg-green" id="conn-live-badge"><span class="dot dg pulse"></span> فعال</span><button class="btn btn-sm btn-o" onclick="loadConnections()"><i class="ti ti-refresh"></i> بروزرسانی</button></div></div>
+  <div class="topbar"><div><div class="tb-title">🔌 اتصالات زنده</div><div class="tb-sub" id="conn-count">۰ اتصال</div></div><div class="tb-right"><span class="badge bg-green"><span class="dot dg pulse"></span> فعال</span><button class="btn btn-sm btn-o" onclick="loadConnections()"><i class="ti ti-refresh"></i> بروزرسانی</button></div></div>
   <div id="conns-grid" class="conn-grid"><div class="empty"><i class="ti ti-plug-off"></i><p>هیچ اتصال فعالی وجود ندارد</p></div></div>
 </section>
 
-<!-- ===== بخش ربات تلگرام ===== -->
 <section class="pg" id="pg-telegram">
   <div class="topbar"><div><div class="tb-title"><i class="ti ti-brand-telegram"></i> ربات تلگرام</div><div class="tb-sub">مدیریت ربات از داخل پنل</div></div></div>
-  
   <div class="settings-card">
     <div class="title"><i class="ti ti-brand-telegram" style="color:#33B5E5"></i> تنظیمات ربات</div>
-    
-    <div id="telegram-status" class="telegram-status off">
-      <span class="dot"></span>
-      <span id="telegram-status-text">غیرفعال</span>
+    <div id="telegram-status" class="telegram-status off"><span class="dot"></span><span id="telegram-status-text">غیرفعال</span></div>
+    <div id="bot-status" style="margin:8px 0 16px;font-size:11px;color:var(--t3)"><span id="bot-running-status">⏹️ ربات متوقف است</span></div>
+    <div class="field"><label><i class="ti ti-key"></i> توکن ربات</label><input id="tg-token" type="text" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz" dir="ltr"></div>
+    <div class="field"><label><i class="ti ti-id"></i> چت‌آیدی</label><input id="tg-chatid" type="text" placeholder="چت‌آیدی عددی یا @username" dir="ltr"></div>
+    <div class="field"><label><i class="ti ti-users"></i> کاربران مجاز (چت‌آیدی با کاما)</label><input id="tg-allowed" type="text" placeholder="123456789,987654321" dir="ltr"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn btn-p" onclick="toggleTelegram()" style="flex:2" id="tg-toggle-btn"><i class="ti ti-device-floppy"></i> ذخیره و فعال‌سازی</button>
+      <button class="btn btn-o" onclick="loadTelegramSettings()" style="flex:1"><i class="ti ti-refresh"></i></button>
+      <button class="btn btn-telegram" onclick="sendTestMessage()" style="flex:1"><i class="ti ti-send"></i> تست</button>
     </div>
-    
-    <div id="bot-status" style="margin:8px 0 16px;font-size:11px;color:var(--t3)">
-      <span id="bot-running-status">⏹️ ربات متوقف است</span>
-    </div>
-    
-    <div class="field">
-      <label><i class="ti ti-key"></i> توکن ربات</label>
-      <input id="tg-token" type="text" placeholder="مثلاً: 1234567890:ABCdefGHIjklMNOpqrsTUVwxyz" dir="ltr">
-    </div>
-    
-    <div class="field">
-      <label><i class="ti ti-id"></i> چت‌آیدی</label>
-      <input id="tg-chatid" type="text" placeholder="چت‌آیدی عددی یا @username" dir="ltr">
-    </div>
-    
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn btn-p" onclick="toggleTelegram()" style="flex:2" id="tg-toggle-btn">
-        <i class="ti ti-device-floppy"></i> ذخیره و فعال‌سازی
-      </button>
-      <button class="btn btn-o" onclick="loadTelegramSettings()" style="flex:1">
-        <i class="ti ti-refresh"></i>
-      </button>
-    </div>
-    
     <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.02);border-radius:10px;font-size:11px;color:var(--t3);line-height:1.8">
       💡 <b>راهنما:</b><br>
-      1. از <a href="https://t.me/botfather" target="_blank" style="color:var(--accent)">@BotFather</a> یک ربات بسازید و توکن بگیرید.<br>
+      1. از <a href="https://t.me/botfather" target="_blank" style="color:var(--accent)">@BotFather</a> ربات بسازید و توکن بگیرید.<br>
       2. چت‌آیدی خود را از <a href="https://t.me/userinfobot" target="_blank" style="color:var(--accent)">@userinfobot</a> دریافت کنید.<br>
-      3. با فعال‌سازی، ربات در پس‌زمینه اجرا میشود.<br>
-      4. تمام نوتیفیکیشن‌ها به تلگرام ارسال میشوند.
+      3. کاربران مجاز را با کاما جدا کنید (خالی = همه).<br>
+      4. با فعال‌سازی، ربات در پس‌زمینه اجرا میشود.
     </div>
   </div>
 </section>
 
-<!-- ===== بخش پشتیبانی ===== -->
 <section class="pg" id="pg-support">
   <div class="topbar"><div><div class="tb-title"><i class="ti ti-headset"></i> پشتیبانی</div><div class="tb-sub">راهنمایی و پشتیبانی سریع</div></div></div>
   <div style="background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--card-b);border-radius:var(--radius);padding:24px;max-width:600px">
-    <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:16px;display:flex;align-items:center;gap:8px"><i class="ti ti-messages" style="color:var(--accent)"></i> ارتباط با پشتیبانی</div>
+    <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:16px"><i class="ti ti-messages" style="color:var(--accent)"></i> ارتباط با پشتیبانی</div>
     <p style="font-size:13px;color:var(--t2);line-height:1.9;margin-bottom:16px">برای دریافت راهنمایی، پشتیبانی و پاسخ به سوالات خود، به گروه تلگرامی ما بپیوندید.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-p" onclick="window.open('https://t.me/+QyEVU0FquFczYjQ0','_blank')" style="flex:2"><i class="ti ti-brand-telegram"></i> عضویت در گروه پشتیبانی</button>
-      <button class="btn btn-o" onclick="navigator.clipboard.writeText('https://t.me/+QyEVU0FquFczYjQ0').then(()=>toast('لینک گروه کپی شد ✓','ok'))"><i class="ti ti-copy"></i> کپی لینک</button>
-    </div>
-    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--card-b);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span class="badge bg-green"><span class="dot dg"></span> آنلاین</span>
-      <span style="font-size:11px;color:var(--t3)">گروه پشتیبانی عقاب · پاسخگویی سریع</span>
+      <button class="btn btn-p" onclick="window.open('https://t.me/+QyEVU0FquFczYjQ0','_blank')" style="flex:2"><i class="ti ti-brand-telegram"></i> عضویت در گروه</button>
+      <button class="btn btn-o" onclick="navigator.clipboard.writeText('https://t.me/+QyEVU0FquFczYjQ0').then(()=>toast('لینک کپی شد','ok'))"><i class="ti ti-copy"></i> کپی لینک</button>
     </div>
   </div>
 </section>
 
-<!-- ===== بخش تنظیمات ===== -->
 <section class="pg" id="pg-settings">
   <div class="topbar"><div><div class="tb-title"><i class="ti ti-settings"></i> تنظیمات پنل</div><div class="tb-sub">تنظیمات ظاهری و مدیریتی</div></div></div>
   <div class="settings-card">
     <div class="title"><i class="ti ti-color-swatch"></i> تنظیمات ظاهری</div>
     <div class="toggle-row">
-      <div class="toggle-label"><i class="ti ti-color-palette" style="background:linear-gradient(135deg,#ff0000,#00ff00,#0000ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent"></i> تم RGB متحرک (کل پنل)</div>
-      <div class="switch" id="rgb-switch" onclick="toggleRGB()">
-        <div class="slider"></div>
-      </div>
+      <div class="toggle-label"><i class="ti ti-color-palette" style="background:linear-gradient(135deg,#ff0000,#00ff00,#0000ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent"></i> تم RGB متحرک</div>
+      <div class="switch" id="rgb-switch" onclick="toggleRGB()"><div class="slider"></div></div>
     </div>
-    <div style="margin-top:12px;font-size:10px;color:var(--t3)">💡 با فعال کردن این گزینه، رنگ کل پنل هر ۲ ثانیه به صورت آرام تغییر میکند</div>
+    <div style="margin-top:12px;font-size:10px;color:var(--t3)">💡 با فعال کردن این گزینه، رنگ کل پنل هر ۲ ثانیه تغییر میکند</div>
   </div>
 </section>
 
-<!-- ===== بخش بکاپ ===== -->
 <section class="pg" id="pg-backup">
   <div class="topbar"><div><div class="tb-title"><i class="ti ti-database"></i> مدیریت بکاپ</div><div class="tb-sub">ذخیره و بازیابی اطلاعات</div></div></div>
   <div class="settings-card">
     <div class="title"><i class="ti ti-download"></i> بکاپ‌گیری</div>
-    <p style="font-size:12px;color:var(--t2);margin-bottom:16px;line-height:1.8">از اطلاعات کاربران، کانفیگ‌ها و تنظیمات بکاپ بگیرید.</p>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:16px">از اطلاعات کاربران، کانفیگ‌ها و تنظیمات بکاپ بگیرید.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-p" onclick="createBackup()" style="flex:2"><i class="ti ti-download"></i> دانلود بکاپ</button>
       <button class="btn btn-o" onclick="document.getElementById('restore-input').click()" style="flex:1"><i class="ti ti-upload"></i> بازیابی</button>
       <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreBackup(event)">
     </div>
-    <div style="margin-top:12px;font-size:10px;color:var(--t3)">📁 فایل بکاپ با فرمت JSON ذخیره می‌شود</div>
   </div>
 </section>
 </main>
@@ -608,22 +526,13 @@ function applyTheme(theme) {
   currentTheme = theme;
   localStorage.setItem('eagle-theme', theme);
   document.documentElement.setAttribute('data-theme', theme);
-  const icon = document.getElementById('theme-icon');
-  const mobIcon = document.getElementById('theme-mob-icon');
-  const label = document.getElementById('theme-label');
-  icon.className = 'ti ' + (theme === 'dark' ? 'ti-moon' : 'ti-sun');
-  if (mobIcon) mobIcon.className = 'ti ' + (theme === 'dark' ? 'ti-moon' : 'ti-sun');
-  label.textContent = theme === 'dark' ? 'تم آتشین تیره' : 'تم آتشین روشن';
+  document.getElementById('theme-label').textContent = theme === 'dark' ? 'تم آتشین تیره' : 'تم آتشین روشن';
 }
-function toggleTheme() {
-  const next = currentTheme === 'dark' ? 'white' : 'dark';
-  applyTheme(next);
-}
+function toggleTheme() { applyTheme(currentTheme === 'dark' ? 'white' : 'dark'); }
 applyTheme(currentTheme);
 
 // ===== تم RGB =====
 let rgbMode = false;
-
 async function loadRGBStatus() {
   try {
     const r = await authF('/api/settings');
@@ -632,30 +541,22 @@ async function loadRGBStatus() {
     updateRGBUI();
   } catch(e) {}
 }
-
 function updateRGBUI() {
   const btn = document.getElementById('rgb-btn');
   const label = document.getElementById('rgb-label');
   const sw = document.getElementById('rgb-switch');
-  
   if (rgbMode) {
     document.body.classList.add('rgb-mode');
     btn.classList.remove('off');
-    btn.style.background = 'linear-gradient(135deg,#ff0000,#00ff00,#0000ff,#ff0000)';
-    btn.style.backgroundSize = '300% 300%';
-    btn.style.animation = 'btnFire 3s ease infinite';
     label.textContent = 'RGB: روشن';
     sw.classList.add('on');
   } else {
     document.body.classList.remove('rgb-mode');
     btn.classList.add('off');
-    btn.style.background = '';
-    btn.style.animation = '';
     label.textContent = 'تم RGB';
     sw.classList.remove('on');
   }
 }
-
 async function toggleRGB() {
   const newState = !rgbMode;
   try {
@@ -667,10 +568,8 @@ async function toggleRGB() {
     const data = await r.json();
     rgbMode = data.rgb_mode;
     updateRGBUI();
-    toast(rgbMode ? '🌈 تم RGB کل پنل فعال شد' : '🌙 تم RGB غیرفعال شد', 'ok');
-  } catch(e) {
-    toast('خطا در تغییر تنظیمات', 'err');
-  }
+    toast(rgbMode ? '🌈 تم RGB فعال شد' : '🌙 تم RGB غیرفعال شد', 'ok');
+  } catch(e) { toast('خطا', 'err'); }
 }
 
 // ===== تنظیمات تلگرام =====
@@ -681,27 +580,17 @@ async function loadTelegramSettings() {
   try {
     const r = await authF('/api/telegram/status');
     const data = await r.json();
-    
-    document.getElementById('tg-token').value = '';
-    document.getElementById('tg-chatid').value = '';
-    
     const sr = await authF('/api/settings');
     const settings = await sr.json();
     
-    if (settings.telegram_token) {
-      document.getElementById('tg-token').value = settings.telegram_token;
-    }
-    if (settings.telegram_chat_id) {
-      document.getElementById('tg-chatid').value = settings.telegram_chat_id;
-    }
+    document.getElementById('tg-token').value = settings.telegram_token || '';
+    document.getElementById('tg-chatid').value = settings.telegram_chat_id || '';
+    document.getElementById('tg-allowed').value = (settings.telegram_allowed_users || []).join(',');
     
     telegramEnabled = settings.telegram_enabled || false;
     telegramRunning = settings.telegram_bot_running || false;
-    
     updateTelegramUI();
-  } catch(e) {
-    console.error(e);
-  }
+  } catch(e) { console.error(e); }
 }
 
 function updateTelegramUI() {
@@ -734,6 +623,7 @@ function updateTelegramUI() {
 async function toggleTelegram() {
   const token = document.getElementById('tg-token').value.trim();
   const chatid = document.getElementById('tg-chatid').value.trim();
+  const allowed = document.getElementById('tg-allowed').value.split(',').map(s => s.trim()).filter(Boolean);
   
   if (!token || !chatid) {
     toast('❌ توکن و چت‌آیدی الزامی هستند', 'err');
@@ -749,7 +639,8 @@ async function toggleTelegram() {
       body: JSON.stringify({
         enabled: newState,
         token: token,
-        chat_id: chatid
+        chat_id: chatid,
+        allowed_users: allowed
       })
     });
     
@@ -765,6 +656,22 @@ async function toggleTelegram() {
     
     updateTelegramUI();
     toast(telegramEnabled ? '✅ ربات فعال شد!' : '❌ ربات غیرفعال شد', telegramEnabled ? 'ok' : 'err');
+  } catch(e) {
+    toast('❌ خطا: ' + e.message, 'err');
+  }
+}
+
+async function sendTestMessage() {
+  try {
+    const r = await authF('/api/telegram/send_test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (r.ok) {
+      toast('✅ پیام تست ارسال شد!', 'ok');
+    } else {
+      toast('❌ ارسال پیام تست ناموفق!', 'err');
+    }
   } catch(e) {
     toast('❌ خطا: ' + e.message, 'err');
   }
@@ -820,10 +727,9 @@ document.querySelectorAll('.nav-it').forEach(el => {
 });
 
 const sb = document.getElementById('sb'), overlay = document.getElementById('overlay');
-function openSb(){ sb.classList.add('open'); overlay.classList.add('show'); }
+document.getElementById('open-sb').addEventListener('click', () => { sb.classList.add('open'); overlay.classList.add('show'); });
+overlay.addEventListener('click', () => { sb.classList.remove('open'); overlay.classList.remove('show'); });
 function closeSb(){ sb.classList.remove('open'); overlay.classList.remove('show'); }
-document.getElementById('open-sb').addEventListener('click', openSb);
-overlay.addEventListener('click', closeSb);
 
 // ===== بارگذاری کاربران =====
 async function loadUsers() {
@@ -831,7 +737,6 @@ async function loadUsers() {
     const r = await authF('/api/links');
     const { links=[] } = await r.json();
     const grid = document.getElementById('users-grid');
-    
     const total = links.length;
     const online = links.filter(l => l.active && !l.expired).length;
     const inactive = links.filter(l => !l.active || l.expired).length;
@@ -843,7 +748,6 @@ async function loadUsers() {
     document.getElementById('inactive-count').textContent = inactive;
     document.getElementById('total-usage').textContent = (totalBytes / (1024*1024)).toFixed(1);
     document.getElementById('active-devices').textContent = devices;
-    document.getElementById('last-update').textContent = 'آخرین بروزرسانی: ' + new Date().toLocaleTimeString('fa-IR');
     document.getElementById('online-badge').innerHTML = '<span class="dot dg"></span> ' + online + ' آنلاین';
     
     try {
@@ -852,9 +756,6 @@ async function loadUsers() {
       if (statsData.top_user) {
         document.getElementById('top-user-label').textContent = '🦅 ' + statsData.top_user.label;
         document.getElementById('top-user-usage').textContent = statsData.top_user.used_fmt || '0';
-      } else {
-        document.getElementById('top-user-label').textContent = '—';
-        document.getElementById('top-user-usage').textContent = '۰';
       }
     } catch(e) {}
     
@@ -868,14 +769,10 @@ async function loadUsers() {
       const pct = l.limit_bytes === 0 ? 0 : Math.min(100, (l.used_bytes / l.limit_bytes) * 100);
       const bc = pct > 90 ? '#EF4444' : pct > 70 ? '#F59E0B' : '#FF6B35';
       const active = l.active && !l.expired;
-      const fp = l.fingerprint || 'chrome';
       const subLink = `https://${host}/sub/${l.uuid}`;
       const hasPassword = l.has_password === true;
       const port = l.port || 443;
-      const warningText = l.warning_config || '';
-      
       const todayBytes = l.today_bytes || 0;
-      const todayFmt = fmtB(todayBytes);
       const lastSeen = l.last_connected_at ? new Date(l.last_connected_at).toLocaleString('fa-IR') : '—';
       const statusText = active ? '🟢 آنلاین' : '🔴 آفلاین';
       const statusClass = active ? 'on' : 'off';
@@ -887,7 +784,7 @@ async function loadUsers() {
         </div>
         <div class="uuid">🔑 ${esc(l.uuid)}</div>
         <div class="info">
-          <span>📊 امروز: ${todayFmt}</span>
+          <span>📊 امروز: ${fmtB(todayBytes)}</span>
           <span>📅 آخرین اتصال: ${lastSeen}</span>
           <span>📱 ${l.max_devices === 0 ? '∞' : l.max_devices + ' دستگاه'}</span>
           <span>🔌 ${port}</span>
@@ -896,10 +793,7 @@ async function loadUsers() {
           <span>📊 مصرف: ${fmtB(l.used_bytes)}</span>
           <span>📦 کل: ${l.limit_bytes === 0 ? '∞' : fmtB(l.limit_bytes)}</span>
         </div>
-        <div class="quota-bar">
-          <div class="quota-fill" style="width: ${pct}%; background: ${bc}"></div>
-        </div>
-        ${warningText ? `<div class="warning-box">${esc(warningText)}</div>` : ''}
+        <div class="quota-bar"><div class="quota-fill" style="width: ${pct}%; background: ${bc}"></div></div>
         <div class="actions">
           <button class="btn btn-sm btn-o" onclick="navigator.clipboard.writeText('${esc(l.vless_link)}').then(()=>toast('لینک کپی شد','ok'))"><i class="ti ti-copy"></i> لینک</button>
           <button class="btn btn-sm btn-pur" onclick="navigator.clipboard.writeText('${esc(subLink)}').then(()=>toast('ساب‌لینک کپی شد','ok'))"><i class="ti ti-link"></i> ساب</button>
@@ -912,138 +806,87 @@ async function loadUsers() {
   } catch(e) { console.error(e); }
 }
 
-// ===== باز کردن مودال ویرایش =====
+// ===== ویرایش =====
 async function openEditModal(uuid) {
-    try {
-        const r = await authF('/api/links');
-        const { links=[] } = await r.json();
-        const link = links.find(l => l.uuid === uuid);
-        
-        if (!link) {
-            toast('کاربر یافت نشد', 'err');
-            return;
-        }
-        
-        document.getElementById('edit-uuid').value = uuid;
-        document.getElementById('edit-label').value = link.label || '';
-        document.getElementById('edit-password').value = '';
-        
-        if (link.limit_bytes === 0) {
-            document.getElementById('edit-quota').value = '';
-        } else {
-            document.getElementById('edit-quota').value = (link.limit_bytes / (1024**3)).toFixed(1);
-        }
-        document.getElementById('edit-unit').value = 'GB';
-        
-        if (link.expires_at) {
-            const days = Math.ceil((new Date(link.expires_at) - new Date()) / (1000 * 60 * 60 * 24));
-            document.getElementById('edit-exp').value = days > 0 ? days : 0;
-        } else {
-            document.getElementById('edit-exp').value = '';
-        }
-        
-        document.getElementById('edit-fingerprint').value = link.fingerprint || 'chrome';
-        document.getElementById('edit-devices').value = link.max_devices || 0;
-        document.getElementById('edit-protocol').value = link.protocol || 'vless-ws';
-        document.getElementById('edit-status').value = link.active ? 'true' : 'false';
-        document.getElementById('edit-port').value = link.port || 443;
-        
-        if (link.has_password) {
-            document.getElementById('edit-password-section').style.display = 'block';
-        } else {
-            document.getElementById('edit-password-section').style.display = 'none';
-        }
-        
-        openModal('modal-edit');
-    } catch(e) {
-        toast('خطا در بارگذاری', 'err');
-    }
+  try {
+    const r = await authF('/api/links');
+    const { links=[] } = await r.json();
+    const link = links.find(l => l.uuid === uuid);
+    if (!link) { toast('کاربر یافت نشد', 'err'); return; }
+    document.getElementById('edit-uuid').value = uuid;
+    document.getElementById('edit-label').value = link.label || '';
+    document.getElementById('edit-password').value = '';
+    document.getElementById('edit-quota').value = link.limit_bytes === 0 ? '' : (link.limit_bytes / (1024**3)).toFixed(1);
+    document.getElementById('edit-unit').value = 'GB';
+    document.getElementById('edit-exp').value = link.expires_at ? Math.ceil((new Date(link.expires_at) - new Date()) / (1000*60*60*24)) : '';
+    document.getElementById('edit-fingerprint').value = link.fingerprint || 'chrome';
+    document.getElementById('edit-devices').value = link.max_devices || 0;
+    document.getElementById('edit-protocol').value = link.protocol || 'vless-ws';
+    document.getElementById('edit-status').value = link.active ? 'true' : 'false';
+    document.getElementById('edit-port').value = link.port || 443;
+    document.getElementById('edit-password-section').style.display = link.has_password ? 'block' : 'none';
+    openModal('modal-edit');
+  } catch(e) { toast('خطا', 'err'); }
 }
 
 async function saveEdit() {
-    const uuid = document.getElementById('edit-uuid').value;
-    const password = document.getElementById('edit-password').value.trim();
-    const label = document.getElementById('edit-label').value.trim() || 'کاربر';
-    const quota = parseFloat(document.getElementById('edit-quota').value) || 0;
-    const unit = document.getElementById('edit-unit').value || 'GB';
-    const exp = parseInt(document.getElementById('edit-exp').value) || 0;
-    const fingerprint = document.getElementById('edit-fingerprint').value || 'chrome';
-    const devices = parseInt(document.getElementById('edit-devices').value) || 0;
-    const protocol = document.getElementById('edit-protocol').value || 'vless-ws';
-    const active = document.getElementById('edit-status').value === 'true';
-    const port = parseInt(document.getElementById('edit-port').value) || 443;
-    
-    try {
-        const r = await authF('/api/links/' + uuid, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                label: label,
-                limit_value: quota,
-                limit_unit: unit,
-                expires_days: exp,
-                fingerprint: fingerprint,
-                max_devices: devices,
-                protocol: protocol,
-                active: active,
-                password: password,
-                port: port
-            })
-        });
-        
-        if (!r.ok) {
-            const err = await r.json().catch(() => ({}));
-            if (r.status === 403) {
-                toast('❌ رمز کانفیگ اشتباه است!', 'err');
-            } else {
-                throw new Error(err.detail || 'خطا');
-            }
-            return;
-        }
-        
-        closeModal('modal-edit');
-        toast('🦅 کانفیگ ویرایش شد ✓', 'ok');
-        loadUsers();
-    } catch(e) {
-        toast('خطا در ویرایش: ' + e.message, 'err');
+  const uuid = document.getElementById('edit-uuid').value;
+  const password = document.getElementById('edit-password').value.trim();
+  const label = document.getElementById('edit-label').value.trim() || 'کاربر';
+  const quota = parseFloat(document.getElementById('edit-quota').value) || 0;
+  const unit = document.getElementById('edit-unit').value || 'GB';
+  const exp = parseInt(document.getElementById('edit-exp').value) || 0;
+  const fingerprint = document.getElementById('edit-fingerprint').value || 'chrome';
+  const devices = parseInt(document.getElementById('edit-devices').value) || 0;
+  const protocol = document.getElementById('edit-protocol').value || 'vless-ws';
+  const active = document.getElementById('edit-status').value === 'true';
+  const port = parseInt(document.getElementById('edit-port').value) || 443;
+  
+  try {
+    const r = await authF('/api/links/' + uuid, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label, limit_value: quota, limit_unit: unit, expires_days: exp, fingerprint, max_devices: devices, protocol, active, password, port })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (r.status === 403) { toast('❌ رمز کانفیگ اشتباه است!', 'err'); return; }
+      throw new Error(err.detail || 'خطا');
     }
+    closeModal('modal-edit');
+    toast('🦅 کانفیگ ویرایش شد ✓', 'ok');
+    loadUsers();
+  } catch(e) { toast('خطا: ' + e.message, 'err'); }
 }
 
+// ===== حذف =====
 function openDeleteModal(uuid) {
-    document.getElementById('delete-uuid').value = uuid;
-    document.getElementById('delete-password').value = '';
-    openModal('modal-delete');
+  document.getElementById('delete-uuid').value = uuid;
+  document.getElementById('delete-password').value = '';
+  openModal('modal-delete');
 }
 
 async function confirmDelete() {
-    const uuid = document.getElementById('delete-uuid').value;
-    const password = document.getElementById('delete-password').value.trim();
-    
-    try {
-        const r = await authF('/api/links/' + uuid, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: password })
-        });
-        
-        if (!r.ok) {
-            const err = await r.json().catch(() => ({}));
-            if (r.status === 403) {
-                toast('❌ رمز کانفیگ اشتباه است!', 'err');
-            } else {
-                throw new Error(err.detail || 'خطا');
-            }
-            return;
-        }
-        
-        closeModal('modal-delete');
-        toast('🦅 کاربر حذف شد', 'ok');
-        loadUsers();
-    } catch(e) {
-        toast('خطا در حذف: ' + e.message, 'err');
+  const uuid = document.getElementById('delete-uuid').value;
+  const password = document.getElementById('delete-password').value.trim();
+  try {
+    const r = await authF('/api/links/' + uuid, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (r.status === 403) { toast('❌ رمز کانفیگ اشتباه است!', 'err'); return; }
+      throw new Error(err.detail || 'خطا');
     }
+    closeModal('modal-delete');
+    toast('🦅 کاربر حذف شد', 'ok');
+    loadUsers();
+  } catch(e) { toast('خطا: ' + e.message, 'err'); }
 }
 
+// ===== ساخت کاربر =====
 async function saveUser() {
   const label = document.getElementById('user-label').value.trim() || 'کاربر';
   const quota = parseFloat(document.getElementById('user-quota').value) || 2;
@@ -1059,37 +902,17 @@ async function saveUser() {
     const r = await authF('/api/links', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        label,
-        limit_value: quota,
-        limit_unit: unit,
-        expires_days: exp,
-        fingerprint: fingerprint,
-        max_devices: devices,
-        protocol: protocol,
-        note: '',
-        password: password,
-        port: port
-      })
+      body: JSON.stringify({ label, limit_value: quota, limit_unit: unit, expires_days: exp, fingerprint, max_devices: devices, protocol, note: '', password, port })
     });
     if (!r.ok) throw new Error();
-    
     document.getElementById('user-label').value = '';
     document.getElementById('user-quota').value = '2';
-    document.getElementById('user-unit').value = 'GB';
     document.getElementById('user-exp').value = '30';
-    document.getElementById('user-fingerprint').value = 'chrome';
-    document.getElementById('user-devices').value = '1';
-    document.getElementById('user-protocol').value = 'vless-ws';
     document.getElementById('user-password').value = '';
-    document.getElementById('user-port').value = '443';
-    
     closeModal('modal-user');
     toast('🦅 کانفیگ ساخته شد ✓', 'ok');
     loadUsers();
-  } catch(e) {
-    toast('خطا در ساخت', 'err');
-  }
+  } catch(e) { toast('خطا در ساخت', 'err'); }
 }
 
 async function resetUsage(uuid) {
@@ -1106,6 +929,7 @@ async function resetUsage(uuid) {
   } catch(e) { toast('خطا', 'err'); }
 }
 
+// ===== اتصالات =====
 async function loadConnections() {
   try {
     const r = await authF('/api/connections');
@@ -1113,27 +937,23 @@ async function loadConnections() {
     const grid = document.getElementById('conns-grid');
     const count = d.count || 0;
     document.getElementById('conn-count').textContent = count + ' اتصال';
-    
     if (!count) {
       grid.innerHTML = '<div class="empty"><i class="ti ti-plug-off"></i><p>هیچ اتصال فعالی وجود ندارد</p></div>';
       return;
     }
-    
     grid.innerHTML = d.connections.map(c => {
       const secs = c.connected_at ? Math.max(0, Math.floor((Date.now() - new Date(c.connected_at).getTime()) / 1000)) : 0;
       const dur = secs < 60 ? secs + ' ث' : secs < 3600 ? Math.floor(secs/60) + ' د' : Math.floor(secs/3600) + ' س';
       return `<div class="conn-card">
         <div class="ip"><span class="conn-status-dot"></span> ${esc(c.ip)}</div>
         <div class="label">${esc(c.label || 'نامشخص')}</div>
-        <div class="conn-info">
-          <span>📥 ${esc(c.bytes_fmt || '0 B')}</span>
-          <span>⏱ ${dur}</span>
-        </div>
+        <div class="conn-info"><span>📥 ${esc(c.bytes_fmt || '0 B')}</span><span>⏱ ${dur}</span></div>
       </div>`;
     }).join('');
   } catch(e) { console.error(e); }
 }
 
+// ===== بکاپ =====
 async function createBackup() {
   try {
     const r = await authF('/api/backup');
@@ -1145,10 +965,8 @@ async function createBackup() {
     a.download = `eagle_backup_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast('✅ بکاپ با موفقیت دانلود شد', 'ok');
-  } catch(e) {
-    toast('خطا در بکاپ‌گیری', 'err');
-  }
+    toast('✅ بکاپ دانلود شد', 'ok');
+  } catch(e) { toast('خطا', 'err'); }
 }
 
 async function restoreBackup(event) {
@@ -1162,16 +980,10 @@ async function restoreBackup(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      toast(err.detail || 'خطا در بازیابی', 'err');
-      return;
-    }
-    toast('✅ بکاپ با موفقیت بازیابی شد', 'ok');
+    if (!r.ok) { const err = await r.json().catch(() => ({})); toast(err.detail || 'خطا', 'err'); return; }
+    toast('✅ بکاپ بازیابی شد', 'ok');
     setTimeout(() => location.reload(), 1500);
-  } catch(e) {
-    toast('خطا در بازیابی بکاپ: ' + e.message, 'err');
-  }
+  } catch(e) { toast('خطا: ' + e.message, 'err'); }
   event.target.value = '';
 }
 
@@ -1198,8 +1010,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 # ===== صفحه ساب‌لینک =====
 def get_sub_page_html(uuid: str, link: dict) -> str:
-    """صفحه ساب‌لینک با اتصالات زنده"""
-    
     used = link.get('used_bytes', 0)
     limit = link.get('limit_bytes', 0)
     active = link.get('active', True)
@@ -1291,219 +1101,71 @@ def get_sub_page_html(uuid: str, link: dict) -> str:
     return f"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🦅 {label} · پنل عقاب</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
-@keyframes fireBG{{
-    0%{{background-position:0% 50%}}
-    25%{{background-position:50% 0%}}
-    50%{{background-position:100% 50%}}
-    75%{{background-position:50% 100%}}
-    100%{{background-position:0% 50%}}
-}}
-@keyframes flameFlicker{{
-    0%{{opacity:0.6;transform:scale(1) rotate(0deg)}}
-    25%{{opacity:0.8;transform:scale(1.02) rotate(2deg)}}
-    50%{{opacity:0.5;transform:scale(0.98) rotate(-1deg)}}
-    75%{{opacity:0.9;transform:scale(1.01) rotate(1deg)}}
-    100%{{opacity:0.6;transform:scale(1) rotate(0deg)}}
-}}
+@keyframes fireBG{{0%{{background-position:0% 50%}}25%{{background-position:50% 0%}}50%{{background-position:100% 50%}}75%{{background-position:50% 100%}}100%{{background-position:0% 50%}}}}
+@keyframes flameFlicker{{0%{{opacity:0.6;transform:scale(1) rotate(0deg)}}25%{{opacity:0.8;transform:scale(1.02) rotate(2deg)}}50%{{opacity:0.5;transform:scale(0.98) rotate(-1deg)}}75%{{opacity:0.9;transform:scale(1.01) rotate(1deg)}}100%{{opacity:0.6;transform:scale(1) rotate(0deg)}}}}
 @keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.25}}}}
-body{{
-    font-family:'Vazirmatn',sans-serif;
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:20px;
-    color:#F0EEFF;
-    position:relative;
-    overflow-x:hidden;
-    background:linear-gradient(135deg,#1a0505,#2a0a0a,#3d0f0a,#2a0505,#1a0a0a);
-    background-size:400% 400%;
-    animation:fireBG 8s ease infinite;
-}}
-.fire-particles{{
-    position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
-}}
-.fire-particle{{
-    position:absolute;
-    border-radius:50%;
-    background:radial-gradient(circle,rgba(255,120,50,0.4),rgba(255,50,0,0));
-    width:6px;height:6px;
-    animation:floatFire 12s ease-in-out infinite;
-}}
-@keyframes floatFire{{
-    0%{{transform:translateY(100vh) scale(0) rotate(0deg);opacity:0}}
-    20%{{opacity:1}}
-    80%{{opacity:1}}
-    100%{{transform:translateY(-10vh) scale(1.5) rotate(720deg);opacity:0}}
-}}
-.fire-glow{{
-    position:fixed;border-radius:50%;filter:blur(150px);z-index:0;animation:flameFlicker 3s ease-in-out infinite;pointer-events:none;
-}}
+body{{font-family:'Vazirmatn',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;color:#F0EEFF;position:relative;overflow-x:hidden;background:linear-gradient(135deg,#1a0505,#2a0a0a,#3d0f0a,#2a0505,#1a0a0a);background-size:400% 400%;animation:fireBG 8s ease infinite;}}
+.fire-particles{{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}}
+.fire-particle{{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,120,50,0.4),rgba(255,50,0,0));width:6px;height:6px;animation:floatFire 12s ease-in-out infinite;}}
+@keyframes floatFire{{0%{{transform:translateY(100vh) scale(0) rotate(0deg);opacity:0}}20%{{opacity:1}}80%{{opacity:1}}100%{{transform:translateY(-10vh) scale(1.5) rotate(720deg);opacity:0}}}}
+.fire-glow{{position:fixed;border-radius:50%;filter:blur(150px);z-index:0;animation:flameFlicker 3s ease-in-out infinite;pointer-events:none;}}
 .glow1{{width:500px;height:500px;background:rgba(255,80,20,0.06);top:-200px;right:-100px}}
 .glow2{{width:400px;height:400px;background:rgba(255,150,50,0.05);bottom:-100px;left:-80px;animation-delay:2s}}
 .glow3{{width:300px;height:300px;background:rgba(200,50,0,0.04);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:4s}}
-.card{{
-    position:relative;z-index:10;
-    background:rgba(20,8,8,0.75);
-    backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
-    border:1px solid rgba(255,100,50,0.15);
-    border-radius:28px;
-    padding:40px 38px 34px;
-    max-width:500px;width:100%;
-    box-shadow:0 0 100px rgba(255,80,20,0.05),0 25px 70px rgba(0,0,0,0.7);
-    animation:cardIn 0.6s ease;
-}}
+.card{{position:relative;z-index:10;background:rgba(20,8,8,0.75);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:1px solid rgba(255,100,50,0.15);border-radius:28px;padding:40px 38px 34px;max-width:500px;width:100%;box-shadow:0 0 100px rgba(255,80,20,0.05),0 25px 70px rgba(0,0,0,0.7);animation:cardIn 0.6s ease;}}
 @keyframes cardIn{{from{{opacity:0;transform:translateY(30px) scale(0.96)}}to{{opacity:1;transform:translateY(0) scale(1)}}}}
-.brand{{
-    display:flex;align-items:center;gap:14px;margin-bottom:28px;
-    padding-bottom:18px;border-bottom:1px solid rgba(255,100,50,0.08);
-}}
-.brand-icon{{
-    width:52px;height:52px;border-radius:16px;
-    background:linear-gradient(135deg,#FF6B35,#FF4500,#FF8C00);
-    display:flex;align-items:center;justify-content:center;
-    font-size:28px;flex-shrink:0;
-    box-shadow:0 0 50px rgba(255,80,20,0.2),0 0 100px rgba(255,80,20,0.05);
-    animation:flameFlicker 2s ease-in-out infinite;
-}}
-.brand-text .name{{
-    font-size:18px;font-weight:800;
-    background:linear-gradient(135deg,#FF8C00,#FF4500,#FF6B35);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}}
+.brand{{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid rgba(255,100,50,0.08);}}
+.brand-icon{{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#FF6B35,#FF4500,#FF8C00);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;box-shadow:0 0 50px rgba(255,80,20,0.2),0 0 100px rgba(255,80,20,0.05);animation:flameFlicker 2s ease-in-out infinite;}}
+.brand-text .name{{font-size:18px;font-weight:800;background:linear-gradient(135deg,#FF8C00,#FF4500,#FF6B35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}}
 .brand-text .sub{{font-size:10.5px;color:#8A4A3A;margin-top:2px;-webkit-text-fill-color:#8A4A3A}}
 .user-header{{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}}
 .user-name{{font-size:24px;font-weight:800;color:#F0EEFF;display:flex;align-items:center;gap:8px}}
 .user-name .fire{{font-size:20px}}
-.status{{
-    display:inline-flex;align-items:center;gap:5px;
-    padding:5px 14px;border-radius:20px;
-    font-size:12px;font-weight:700;
-}}
-.status.active{{
-    background:rgba(255,80,20,0.12);color:#FF8C00;
-    border:1px solid rgba(255,80,20,0.15);
-}}
-.status.inactive{{
-    background:rgba(239,68,68,0.12);color:#F87171;
-    border:1px solid rgba(239,68,68,0.15);
-}}
-.uuid-box{{
-    background:rgba(255,255,255,0.02);
-    border:1px solid rgba(255,255,255,0.04);
-    border-radius:10px;padding:8px 12px;
-    font-size:10px;font-family:monospace;color:#8A4A3A;
-    word-break:break-all;margin:6px 0 16px;cursor:pointer;transition:.15s;
-}}
+.status{{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;}}
+.status.active{{background:rgba(255,80,20,0.12);color:#FF8C00;border:1px solid rgba(255,80,20,0.15);}}
+.status.inactive{{background:rgba(239,68,68,0.12);color:#F87171;border:1px solid rgba(239,68,68,0.15);}}
+.uuid-box{{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:10px;padding:8px 12px;font-size:10px;font-family:monospace;color:#8A4A3A;word-break:break-all;margin:6px 0 16px;cursor:pointer;transition:.15s;}}
 .uuid-box:hover{{background:rgba(255,80,20,0.05);border-color:rgba(255,80,20,0.1)}}
 .info-grid{{display:grid;gap:10px;margin:16px 0}}
-.info-item{{
-    background:rgba(255,255,255,0.02);
-    border:1px solid rgba(255,255,255,0.04);
-    border-radius:12px;padding:13px 16px;
-    display:flex;justify-content:space-between;align-items:center;
-    transition:.15s;
-}}
+.info-item{{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;transition:.15s;}}
 .info-item:hover{{background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.06)}}
 .info-label{{font-size:12px;color:#8A4A3A;display:flex;align-items:center;gap:6px}}
 .info-label i{{font-size:15px;color:#FF6B35}}
 .info-value{{font-size:14px;font-weight:700;color:#F0EEFF}}
 .info-value.used{{color:#FF8C00}}
 .info-value.remain{{color:#34D399}}
-.info-value.proto{{
-    font-size:11px;
-    background:rgba(255,80,20,0.08);
-    padding:4px 12px;border-radius:8px;
-    border:1px solid rgba(255,80,20,0.08);
-}}
+.info-value.proto{{font-size:11px;background:rgba(255,80,20,0.08);padding:4px 12px;border-radius:8px;border:1px solid rgba(255,80,20,0.08);}}
 .progress{{margin:18px 0 20px}}
-.progress-bar{{
-    height:7px;border-radius:5px;
-    background:rgba(255,255,255,0.05);overflow:hidden;
-}}
-.progress-fill{{
-    height:100%;border-radius:5px;
-    background:linear-gradient(90deg,#FF6B35,#FF4500,#FF8C00);
-    width:{percent:.1f}%;transition:width 1s ease;
-}}
+.progress-bar{{height:7px;border-radius:5px;background:rgba(255,255,255,0.05);overflow:hidden;}}
+.progress-fill{{height:100%;border-radius:5px;background:linear-gradient(90deg,#FF6B35,#FF4500,#FF8C00);width:{percent:.1f}%;transition:width 1s ease;}}
 .progress-text{{display:flex;justify-content:space-between;font-size:11px;color:#8A4A3A;margin-top:6px}}
 .progress-text .pct{{font-weight:700;color:#F0EEFF}}
-.vless-section{{
-    background:rgba(255,255,255,0.02);
-    border:1px solid rgba(255,255,255,0.04);
-    border-radius:12px;padding:14px 16px;margin:16px 0;
-}}
-.vless-label{{
-    font-size:10px;color:#8A4A3A;font-weight:700;
-    text-transform:uppercase;letter-spacing:.06em;
-    display:flex;align-items:center;gap:6px;margin-bottom:8px;
-}}
+.vless-section{{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:14px 16px;margin:16px 0;}}
+.vless-label{{font-size:10px;color:#8A4A3A;font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px;margin-bottom:8px;}}
 .vless-label i{{color:#FF6B35;font-size:13px}}
-.vless-link{{
-    font-family:monospace;font-size:10px;color:#FF8C00;
-    word-break:break-all;line-height:1.8;
-    background:rgba(0,0,0,0.3);padding:10px 12px;
-    border-radius:8px;border:1px solid rgba(255,80,20,0.06);
-}}
+.vless-link{{font-family:monospace;font-size:10px;color:#FF8C00;word-break:break-all;line-height:1.8;background:rgba(0,0,0,0.3);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,80,20,0.06);}}
 .actions{{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}}
-.btn{{
-    font-family:inherit;font-size:12px;font-weight:600;
-    border-radius:10px;padding:9px 16px;
-    cursor:pointer;display:inline-flex;align-items:center;gap:6px;
-    border:none;transition:all .2s;white-space:nowrap;flex:1;justify-content:center;
-}}
+.btn{{font-family:inherit;font-size:12px;font-weight:600;border-radius:10px;padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:none;transition:all .2s;white-space:nowrap;flex:1;justify-content:center;}}
 .btn i{{font-size:14px}}
-.btn-primary{{
-    background:linear-gradient(135deg,#FF6B35,#FF4500);
-    color:#fff;box-shadow:0 4px 20px rgba(255,80,20,0.2);
-}}
+.btn-primary{{background:linear-gradient(135deg,#FF6B35,#FF4500);color:#fff;box-shadow:0 4px 20px rgba(255,80,20,0.2);}}
 .btn-primary:hover{{transform:translateY(-2px);box-shadow:0 8px 30px rgba(255,80,20,0.3)}}
-.btn-secondary{{
-    background:rgba(255,255,255,0.04);
-    border:1px solid rgba(255,255,255,0.06);
-    color:#8A4A3A;
-}}
+.btn-secondary{{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#8A4A3A;}}
 .btn-secondary:hover{{background:rgba(255,255,255,0.08);color:#F0EEFF}}
-.btn-success{{
-    background:rgba(16,185,129,0.1);
-    border:1px solid rgba(16,185,129,0.15);
-    color:#34D399;
-}}
+.btn-success{{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.15);color:#34D399;}}
 .btn-success:hover{{background:rgba(16,185,129,0.15)}}
-.footer{{
-    margin-top:22px;padding-top:16px;
-    border-top:1px solid rgba(255,255,255,0.03);
-    text-align:center;font-size:10px;color:#5A3A2A;
-}}
+.footer{{margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.03);text-align:center;font-size:10px;color:#5A3A2A;}}
 .footer .eagle{{color:#FF6B35;font-weight:700}}
-.toast{{
-    position:fixed;bottom:30px;left:50%;
-    transform:translateX(-50%) translateY(60px);
-    background:rgba(20,8,8,0.9);backdrop-filter:blur(20px);
-    border:1px solid rgba(255,80,20,0.12);
-    color:#F0EEFF;border-radius:12px;
-    padding:12px 22px;font-size:13px;
-    opacity:0;transition:all .3s;z-index:999;pointer-events:none;
-    display:flex;align-items:center;gap:8px;
-    box-shadow:0 10px 40px rgba(0,0,0,0.4);
-}}
+.toast{{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(60px);background:rgba(20,8,8,0.9);backdrop-filter:blur(20px);border:1px solid rgba(255,80,20,0.12);color:#F0EEFF;border-radius:12px;padding:12px 22px;font-size:13px;opacity:0;transition:all .3s;z-index:999;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 10px 40px rgba(0,0,0,0.4);}}
 .toast.show{{opacity:1;transform:translateX(-50%) translateY(0)}}
 .toast.ok{{border-color:rgba(16,185,129,0.2);color:#34D399}}
-@media(max-width:520px){{
-    .card{{padding:28px 20px 24px}}
-    .user-name{{font-size:20px}}
-    .brand-icon{{width:44px;height:44px;font-size:22px}}
-    .info-item{{padding:11px 14px}}
-    .btn{{font-size:11px;padding:8px 12px}}
-}}
+@media(max-width:520px){{.card{{padding:28px 20px 24px}}.user-name{{font-size:20px}}.brand-icon{{width:44px;height:44px;font-size:22px}}.info-item{{padding:11px 14px}}.btn{{font-size:11px;padding:8px 12px}}}}
 </style>
 </head>
 <body>
@@ -1534,9 +1196,7 @@ body{{
         </span>
     </div>
     <div class="uuid-box" onclick="copyUUID()" title="کلیک برای کپی UUID">🔑 {uuid}</div>
-    
     {conns_html}
-    
     <div class="info-grid">
         <div class="info-item"><span class="info-label"><i class="ti ti-database"></i> مصرف</span><span class="info-value used">{used_fmt}</span></div>
         <div class="info-item"><span class="info-label"><i class="ti ti-package"></i> سهمیه</span><span class="info-value">{limit_fmt}</span></div>
@@ -1565,11 +1225,7 @@ body{{
 const vless = `{new_vless_link}`;
 const subUrl = `{sub_url}`;
 const uuid = `{uuid}`;
-function toast(msg, type=''){{
-    const t=document.getElementById('toast');
-    t.textContent=msg;t.className='toast show'+(type?' '+type:'');
-    setTimeout(()=>t.classList.remove('show'),2500);
-}}
+function toast(msg, type=''){{const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(()=>t.classList.remove('show'),2500);}}
 function copyVless(){{navigator.clipboard.writeText(vless).then(()=>toast('✅ لینک کانفیگ کپی شد','ok'));}}
 function copySub(){{navigator.clipboard.writeText(subUrl).then(()=>toast('✅ ساب‌لینک کپی شد','ok'));}}
 function copyUUID(){{navigator.clipboard.writeText(uuid).then(()=>toast('✅ UUID کپی شد','ok'));}}
