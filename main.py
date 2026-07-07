@@ -11,6 +11,9 @@ from urllib.parse import quote
 from collections import deque, defaultdict
 from pathlib import Path
 import socket
+import subprocess
+import signal
+import sys
 
 from fastapi import FastAPI, Request, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response, HTMLResponse, JSONResponse, RedirectResponse
@@ -52,7 +55,6 @@ app.add_middleware(
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 DATA_FILE = DATA_DIR / "eagle_state.json"
 SAVE_LOCK = asyncio.Lock()
-WARNING_CONFIG = ""
 
 # ─── In-Memory State ─────────────────────────────────────────────────────────
 LINKS: dict = {}
@@ -86,6 +88,8 @@ SETTINGS: dict = {
     "telegram_token": None,
     "telegram_chat_id": None,
     "telegram_enabled": False,
+    "telegram_bot_running": False,
+    "telegram_bot_pid": None,
     "default_protocol": "vless-ws",
     "default_port": 443,
 }
@@ -217,7 +221,6 @@ async def remove_device_connection(uuid: str, client_ip: str):
 # ─── Telegram Bot Integration ─────────────────────────────────────────────────
 
 async def send_telegram_message(message: str) -> bool:
-    """ارسال پیام به ربات تلگرام"""
     if not SETTINGS.get("telegram_enabled"):
         return False
     
@@ -240,8 +243,50 @@ async def send_telegram_message(message: str) -> bool:
         logger.error(f"Telegram send error: {e}")
         return False
 
+async def start_bot_process():
+    try:
+        if SETTINGS.get("telegram_bot_running", False):
+            return True
+        
+        env = os.environ.copy()
+        env["PANEL_URL"] = f"http://localhost:{CONFIG['port']}"
+        env["ADMIN_PASSWORD"] = CONFIG["admin_password"]
+        
+        proc = subprocess.Popen(
+            [sys.executable, "telegram_bot.py"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            env=env
+        )
+        
+        SETTINGS["telegram_bot_pid"] = proc.pid
+        SETTINGS["telegram_bot_running"] = True
+        await save_state()
+        
+        logger.info(f"✅ ربات تلگرام با PID {proc.pid} استارت خورد")
+        return True
+    except Exception as e:
+        logger.error(f"❌ خطا در استارت ربات: {e}")
+        SETTINGS["telegram_bot_running"] = False
+        return False
+
+async def stop_bot_process():
+    try:
+        pid = SETTINGS.get("telegram_bot_pid")
+        if pid:
+            os.kill(pid, signal.SIGTERM)
+            SETTINGS["telegram_bot_pid"] = None
+        
+        SETTINGS["telegram_bot_running"] = False
+        await save_state()
+        logger.info("✅ ربات تلگرام متوقف شد")
+        return True
+    except Exception as e:
+        logger.error(f"❌ خطا در توقف ربات: {e}")
+        return False
+
 async def send_telegram_link_created(link_data: dict):
-    """ارسال نوتیفیکیشن ساخت کانفیگ به تلگرام"""
     if not SETTINGS.get("telegram_enabled"):
         return
     
@@ -256,9 +301,6 @@ async def send_telegram_link_created(link_data: dict):
 
 🔗 <b>لینک اشتراک:</b>
 <code>https://{host}/sub/{link_data.get('uuid', '')}</code>
-
-🔗 <b>لینک کانفیگ:</b>
-<code>{link_data.get('vless_link', '')}</code>
 """
     await send_telegram_message(msg)
 
@@ -342,8 +384,8 @@ async def startup():
     http_client = httpx.AsyncClient(limits=limits, timeout=timeout, follow_redirects=True)
     await load_state()
     
-    # تنظیم ربات تلگرام
     if SETTINGS.get("telegram_enabled") and SETTINGS.get("telegram_token"):
+        await start_bot_process()
         await send_telegram_message("🦅 <b>پنل عقاب راه‌اندازی شد!</b>\n\n✅ سرور با موفقیت استارت خورد.")
     
     log_activity("system", "🦅 پنل عقاب v10 Pro راه‌اندازی شد", "ok")
@@ -354,6 +396,63 @@ async def shutdown():
     await save_state()
     if http_client:
         await http_client.aclose()
+    
+    if SETTINGS.get("telegram_bot_running"):
+        await stop_bot_process()
+
+# ─── API: Telegram Bot Management ────────────────────────────────────────────
+
+@app.get("/api/telegram/status")
+async def get_telegram_status(_=Depends(require_auth)):
+    return {
+        "enabled": SETTINGS.get("telegram_enabled", False),
+        "running": SETTINGS.get("telegram_bot_running", False),
+        "token_set": bool(SETTINGS.get("telegram_token")),
+        "chat_id_set": bool(SETTINGS.get("telegram_chat_id")),
+    }
+
+@app.post("/api/telegram/toggle")
+async def toggle_telegram_bot(request: Request, _=Depends(require_auth)):
+    body = await request.json()
+    enabled = bool(body.get("enabled", False))
+    token = body.get("token", "").strip()
+    chat_id = body.get("chat_id", "").strip()
+    
+    if enabled and (not token or not chat_id):
+        raise HTTPException(status_code=400, detail="برای فعال‌سازی، توکن و چت‌آیدی الزامی است")
+    
+    SETTINGS["telegram_token"] = token if token else None
+    SETTINGS["telegram_chat_id"] = chat_id if chat_id else None
+    SETTINGS["telegram_enabled"] = enabled
+    
+    if enabled:
+        test_msg = await send_telegram_message("🦅 <b>ربات پنل عقاب در حال راه‌اندازی...</b>")
+        if not test_msg:
+            SETTINGS["telegram_enabled"] = False
+            await save_state()
+            raise HTTPException(status_code=400, detail="ارسال پیام تست ناموفق! توکن یا چت‌آیدی اشتباه است.")
+        
+        if not SETTINGS.get("telegram_bot_running"):
+            await start_bot_process()
+        
+        await send_telegram_message("✅ <b>ربات پنل عقاب با موفقیت فعال شد!</b>")
+        
+    else:
+        await stop_bot_process()
+        SETTINGS["telegram_enabled"] = False
+    
+    await save_state()
+    log_activity("telegram", f"ربات تلگرام {'فعال' if enabled else 'غیرفعال'} شد", "info")
+    
+    return {
+        "ok": True,
+        "settings": {
+            "telegram_enabled": SETTINGS["telegram_enabled"],
+            "telegram_bot_running": SETTINGS.get("telegram_bot_running", False),
+            "telegram_token_set": bool(SETTINGS.get("telegram_token")),
+            "telegram_chat_id_set": bool(SETTINGS.get("telegram_chat_id")),
+        }
+    }
 
 # ─── API: Settings ─────────────────────────────────────────────────────────
 
@@ -364,30 +463,6 @@ async def get_settings(_=Depends(require_auth)):
         "telegram_token_set": bool(SETTINGS.get("telegram_token")),
         "telegram_chat_id_set": bool(SETTINGS.get("telegram_chat_id")),
     }
-
-@app.post("/api/settings/telegram")
-async def update_telegram_settings(request: Request, _=Depends(require_auth)):
-    body = await request.json()
-    token = body.get("token", "").strip()
-    chat_id = body.get("chat_id", "").strip()
-    enabled = bool(body.get("enabled", False))
-    
-    if enabled and (not token or not chat_id):
-        raise HTTPException(status_code=400, detail="برای فعال‌سازی، توکن و چت‌آیدی الزامی است")
-    
-    SETTINGS["telegram_token"] = token if token else None
-    SETTINGS["telegram_chat_id"] = chat_id if chat_id else None
-    SETTINGS["telegram_enabled"] = enabled
-    
-    # تست اتصال
-    if enabled and token and chat_id:
-        test_msg = await send_telegram_message("🦅 <b>اتصال به ربات برقرار شد!</b>\n\n✅ پنل عقاب با موفقیت به ربات شما متصل شد.")
-        if not test_msg:
-            raise HTTPException(status_code=400, detail="ارسال پیام تست ناموفق! توکن یا چت‌آیدی اشتباه است.")
-    
-    await save_state()
-    log_activity("settings", f"تنظیمات تلگرام {'فعال' if enabled else 'غیرفعال'} شد", "info")
-    return {"ok": True, "settings": SETTINGS}
 
 @app.post("/api/settings/rgb")
 async def toggle_rgb(request: Request, _=Depends(require_auth)):
@@ -462,7 +537,6 @@ async def create_link(request: Request, _=Depends(require_auth)):
         "warning_config": "",
     }
     
-    # ارسال به تلگرام
     asyncio.create_task(send_telegram_link_created(link_data))
     
     return link_data
@@ -486,8 +560,6 @@ async def list_links(_=Depends(require_auth)):
             if c.get("uuid") == uid:
                 if not last_connected or c.get("connected_at") > last_connected:
                     last_connected = c.get("connected_at")
-        
-        active = d.get("active", True) and not is_link_expired(d)
         
         result.append({
             "uuid": uid,
@@ -515,7 +587,6 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             raise HTTPException(status_code=404, detail="link not found")
         link = LINKS[uid]
         
-        # بررسی رمز برای کانفیگ‌های رمزدار
         if link.get("password_hash"):
             password = body.get("password", "").strip()
             if not password:
@@ -599,7 +670,6 @@ async def delete_link(uid: str, request: Request, _=Depends(require_auth)):
     asyncio.create_task(save_state())
     log_activity("link", f"کانفیگ «{label}» حذف شد", "err")
     
-    # نوتیفیکیشن به تلگرام
     await send_telegram_message(f"🗑️ <b>کانفیگ حذف شد</b>\n\n📌 نام: {label}\n🔑 UUID: <code>{uid}</code>")
     
     return {"ok": True, "deleted": uid}
@@ -941,7 +1011,6 @@ async def check_and_use(uid: str, n: int) -> bool:
         stats["total_bytes"] = stats.get("total_bytes", 0) + n
         hourly_traffic[now_ir().strftime("%H:00")] = hourly_traffic.get(now_ir().strftime("%H:00"), 0) + n
         
-        # نوتیفیکیشن نزدیک شدن به اتمام حجم
         limit = link.get("limit_bytes", 0)
         used = link.get("used_bytes", 0)
         if limit > 0 and used >= limit * 0.9 and used < limit:
@@ -1035,7 +1104,6 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
     logger.info(f"✅ WS [{conn_id}] uuid={uuid[:8]}… ip={client_ip} total={len(connections)}")
     log_activity("connection", f"اتصال جدید از {client_ip} (کانفیگ {link.get('label','?')})", "info")
     
-    # نوتیفیکیشن اتصال جدید به تلگرام
     asyncio.create_task(send_telegram_message(
         f"🔌 <b>اتصال جدید</b>\n\n"
         f"📌 کاربر: {link.get('label', 'نامشخص')}\n"
@@ -1111,14 +1179,6 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
         connections.pop(conn_id, None)
         await remove_device_connection(uuid, client_ip)
         logger.info(f"🔌 WS closed [{conn_id}] total={len(connections)}")
-
-# ─── XHTTP ──────────────────────────────────────────────────────────────────
-
-try:
-    from xhttp_siz10 import router as xhttp_router
-    app.include_router(xhttp_router)
-except ImportError:
-    pass
 
 # ─── HTTP Proxy ────────────────────────────────────────────────────────────
 
@@ -1328,7 +1388,6 @@ async def public_sub_data(uuid_key: str, request: Request):
 
 # ─── HTML Pages ─────────────────────────────────────────────────────────────
 
-# pages.py رو ایمپورت میکنیم
 from pages import LOGIN_HTML, DASHBOARD_HTML
 
 @app.get("/login", response_class=HTMLResponse)
@@ -1342,10 +1401,6 @@ async def dashboard(request: Request):
     if not await is_valid_session(request.cookies.get(SESSION_COOKIE)):
         return RedirectResponse(url="/login")
     return HTMLResponse(content=DASHBOARD_HTML)
-
-@app.get("/test-ws", response_class=HTMLResponse)
-async def test_ws_redirect():
-    return HTMLResponse(content="<script>location.href='/dashboard'</script>")
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
