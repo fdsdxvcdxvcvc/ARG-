@@ -1,10 +1,11 @@
 # relay_vless.py - WebSocket to TCP relay برای VLESS
-# نسخه کامل و هماهنگ با پنل عقاب
+# نسخه کامل و اصلاح شده
 
 import asyncio
 import json
 import logging
 import time
+import os  # ✅ این خط رو اضافه کردم
 import uuid as uuid_lib
 from fastapi import WebSocket, WebSocketDisconnect
 from urllib.parse import parse_qs, urlparse
@@ -110,8 +111,8 @@ async def websocket_tunnel(websocket: WebSocket, uuid: str):
     # دریافت دیکشنری‌های گلوبال از main
     try:
         from main import LINKS, LINKS_LOCK, is_link_allowed
-    except ImportError:
-        logger.error("Cannot import from main")
+    except ImportError as e:
+        logger.error(f"Cannot import from main: {e}")
         await websocket.close(code=1011)
         return
     
@@ -146,10 +147,13 @@ async def websocket_tunnel(websocket: WebSocket, uuid: str):
         
         # دریافت اولین بسته
         try:
-            first_data = await asyncio.wait_for(websocket.receive_bytes(), timeout=5.0)
+            first_data = await asyncio.wait_for(websocket.receive_bytes(), timeout=10.0)
         except asyncio.TimeoutError:
             logger.warning(f"⏱️ Timeout waiting for data from {uuid}")
             await websocket.close(code=1008)
+            return
+        except WebSocketDisconnect:
+            logger.warning(f"🔴 WebSocket disconnected before receiving data: {uuid}")
             return
         
         # پارس هدر VLESS
@@ -166,9 +170,6 @@ async def websocket_tunnel(websocket: WebSocket, uuid: str):
             return
         
         # ── اتصال به سرور مقصد ──────────────────────────────────────────
-        # اینجا آدرس سرور واقعی رو تنظیم کن
-        # میتونه آدرس IP سرور، یا 127.0.0.1 باشه
-        
         # گزینه ۱: استفاده از تنظیمات محیطی
         target_host = os.environ.get("TARGET_HOST", "127.0.0.1")
         target_port = int(os.environ.get("TARGET_PORT", 443))
@@ -178,9 +179,13 @@ async def websocket_tunnel(websocket: WebSocket, uuid: str):
         # target_port = 443
         
         # گزینه ۳: استفاده از آدرس دامنه پنل
-        # from main import get_host
-        # target_host = get_host()
-        # target_port = 443
+        # از main import کن
+        try:
+            from main import get_host
+            target_host = get_host()
+            target_port = 443
+        except:
+            pass
         
         logger.info(f"🔗 Connecting to {target_host}:{target_port}")
         
@@ -188,7 +193,10 @@ async def websocket_tunnel(websocket: WebSocket, uuid: str):
             reader, writer = await asyncio.open_connection(target_host, target_port)
         except Exception as e:
             logger.error(f"❌ TCP connection failed to {target_host}:{target_port} - {e}")
-            await websocket.send_text(json.dumps({"error": f"connection failed: {e}"}))
+            try:
+                await websocket.send_text(json.dumps({"error": f"connection failed: {e}"}))
+            except:
+                pass
             await websocket.close(code=1011)
             return
         
