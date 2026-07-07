@@ -1,4 +1,4 @@
-# pages.py - پنل عقاب نسخه کامل با پشتیبانی تلگرام
+# pages.py - پنل عقاب نسخه کامل با مدیریت ربات
 
 LOGIN_HTML = r"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -316,7 +316,6 @@ select.fi{appearance:none;cursor:pointer}
 .switch .slider{position:absolute;top:2px;right:2px;width:22px;height:22px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
 .switch.on .slider{right:24px}
 
-/* تنظیمات تلگرام */
 .telegram-status{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-size:12px;margin-top:8px}
 .telegram-status.on{background:var(--green-bg);color:var(--green-t);border:1px solid rgba(16,185,129,0.15)}
 .telegram-status.off{background:var(--red-bg);color:var(--red-t);border:1px solid rgba(239,68,68,0.15)}
@@ -511,7 +510,7 @@ select.fi{appearance:none;cursor:pointer}
 
 <!-- ===== بخش ربات تلگرام ===== -->
 <section class="pg" id="pg-telegram">
-  <div class="topbar"><div><div class="tb-title"><i class="ti ti-brand-telegram"></i> ربات تلگرام</div><div class="tb-sub">اتصال پنل به ربات برای مدیریت از طریق تلگرام</div></div></div>
+  <div class="topbar"><div><div class="tb-title"><i class="ti ti-brand-telegram"></i> ربات تلگرام</div><div class="tb-sub">مدیریت ربات از داخل پنل</div></div></div>
   
   <div class="settings-card">
     <div class="title"><i class="ti ti-brand-telegram" style="color:#33B5E5"></i> تنظیمات ربات</div>
@@ -519,6 +518,10 @@ select.fi{appearance:none;cursor:pointer}
     <div id="telegram-status" class="telegram-status off">
       <span class="dot"></span>
       <span id="telegram-status-text">غیرفعال</span>
+    </div>
+    
+    <div id="bot-status" style="margin:8px 0 16px;font-size:11px;color:var(--t3)">
+      <span id="bot-running-status">⏹️ ربات متوقف است</span>
     </div>
     
     <div class="field">
@@ -532,16 +535,20 @@ select.fi{appearance:none;cursor:pointer}
     </div>
     
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn btn-p" onclick="saveTelegramSettings()" style="flex:2"><i class="ti ti-check"></i> ذخیره و تست</button>
-      <button class="btn btn-o" onclick="loadTelegramSettings()" style="flex:1"><i class="ti ti-refresh"></i></button>
+      <button class="btn btn-p" onclick="toggleTelegram()" style="flex:2" id="tg-toggle-btn">
+        <i class="ti ti-device-floppy"></i> ذخیره و فعال‌سازی
+      </button>
+      <button class="btn btn-o" onclick="loadTelegramSettings()" style="flex:1">
+        <i class="ti ti-refresh"></i>
+      </button>
     </div>
     
     <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.02);border-radius:10px;font-size:11px;color:var(--t3);line-height:1.8">
       💡 <b>راهنما:</b><br>
       1. از <a href="https://t.me/botfather" target="_blank" style="color:var(--accent)">@BotFather</a> یک ربات بسازید و توکن بگیرید.<br>
       2. چت‌آیدی خود را از <a href="https://t.me/userinfobot" target="_blank" style="color:var(--accent)">@userinfobot</a> دریافت کنید.<br>
-      3. پس از ذخیره، پیام تست ارسال میشود.<br>
-      ✅ با فعال‌سازی، تمام نوتیفیکیشن‌ها به تلگرام ارسال میشوند.
+      3. با فعال‌سازی، ربات در پس‌زمینه اجرا میشود.<br>
+      4. تمام نوتیفیکیشن‌ها به تلگرام ارسال میشوند.
     </div>
   </div>
 </section>
@@ -667,29 +674,64 @@ async function toggleRGB() {
 }
 
 // ===== تنظیمات تلگرام =====
+let telegramEnabled = false;
+let telegramRunning = false;
+
 async function loadTelegramSettings() {
   try {
-    const r = await authF('/api/settings');
+    const r = await authF('/api/telegram/status');
     const data = await r.json();
-    document.getElementById('tg-token').value = data.telegram_token || '';
-    document.getElementById('tg-chatid').value = data.telegram_chat_id || '';
-    updateTelegramStatus(data.telegram_enabled);
-  } catch(e) {}
-}
-
-function updateTelegramStatus(enabled) {
-  const el = document.getElementById('telegram-status');
-  const text = document.getElementById('telegram-status-text');
-  if (enabled) {
-    el.className = 'telegram-status on';
-    text.textContent = '✅ متصل به ربات';
-  } else {
-    el.className = 'telegram-status off';
-    text.textContent = '❌ غیرفعال';
+    
+    document.getElementById('tg-token').value = '';
+    document.getElementById('tg-chatid').value = '';
+    
+    const sr = await authF('/api/settings');
+    const settings = await sr.json();
+    
+    if (settings.telegram_token) {
+      document.getElementById('tg-token').value = settings.telegram_token;
+    }
+    if (settings.telegram_chat_id) {
+      document.getElementById('tg-chatid').value = settings.telegram_chat_id;
+    }
+    
+    telegramEnabled = settings.telegram_enabled || false;
+    telegramRunning = settings.telegram_bot_running || false;
+    
+    updateTelegramUI();
+  } catch(e) {
+    console.error(e);
   }
 }
 
-async function saveTelegramSettings() {
+function updateTelegramUI() {
+  const statusEl = document.getElementById('telegram-status');
+  const textEl = document.getElementById('telegram-status-text');
+  const runningEl = document.getElementById('bot-running-status');
+  const btn = document.getElementById('tg-toggle-btn');
+  
+  if (telegramEnabled && telegramRunning) {
+    statusEl.className = 'telegram-status on';
+    textEl.textContent = '✅ ربات فعال و در حال اجرا';
+    runningEl.innerHTML = '▶️ ربات در حال اجراست';
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> غیرفعال‌سازی';
+    btn.className = 'btn btn-d';
+  } else if (telegramEnabled && !telegramRunning) {
+    statusEl.className = 'telegram-status on';
+    textEl.textContent = '✅ ربات فعال اما در حال اجرا نیست';
+    runningEl.innerHTML = '⏳ ربات در حال راه‌اندازی...';
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> راه‌اندازی مجدد';
+    btn.className = 'btn btn-p';
+  } else {
+    statusEl.className = 'telegram-status off';
+    textEl.textContent = '❌ ربات غیرفعال';
+    runningEl.innerHTML = '⏹️ ربات متوقف است';
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> ذخیره و فعال‌سازی';
+    btn.className = 'btn btn-p';
+  }
+}
+
+async function toggleTelegram() {
   const token = document.getElementById('tg-token').value.trim();
   const chatid = document.getElementById('tg-chatid').value.trim();
   
@@ -698,14 +740,16 @@ async function saveTelegramSettings() {
     return;
   }
   
+  const newState = !telegramEnabled;
+  
   try {
-    const r = await authF('/api/settings/telegram', {
+    const r = await authF('/api/telegram/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        enabled: newState,
         token: token,
-        chat_id: chatid,
-        enabled: true
+        chat_id: chatid
       })
     });
     
@@ -716,8 +760,11 @@ async function saveTelegramSettings() {
     }
     
     const data = await r.json();
-    updateTelegramStatus(data.settings.telegram_enabled);
-    toast('✅ اتصال به ربات برقرار شد! پیام تست ارسال شد.', 'ok');
+    telegramEnabled = data.settings.telegram_enabled;
+    telegramRunning = data.settings.telegram_bot_running;
+    
+    updateTelegramUI();
+    toast(telegramEnabled ? '✅ ربات فعال شد!' : '❌ ربات غیرفعال شد', telegramEnabled ? 'ok' : 'err');
   } catch(e) {
     toast('❌ خطا: ' + e.message, 'err');
   }
