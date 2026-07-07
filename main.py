@@ -5,15 +5,14 @@ import hashlib
 import secrets
 import time
 import aiofiles
+import psutil
+import shutil
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from urllib.parse import quote
 from collections import deque, defaultdict
 from pathlib import Path
 import socket
-import subprocess
-import signal
-import sys
 
 from fastapi import FastAPI, Request, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response, HTMLResponse, JSONResponse, RedirectResponse
@@ -22,7 +21,7 @@ import uvicorn
 import httpx
 import logging
 
-# ─── تنظیمات لاگ ──────────────────────────────────────────────────────────────
+# ─── تنظیمات ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -41,7 +40,7 @@ CONFIG = {
 }
 
 # ─── App ──────────────────────────────────────────────────────────────────────
-app = FastAPI(title="🦅 Eagle Gateway v10 Pro", docs_url=None, redoc_url=None)
+app = FastAPI(title="🦅 Eagle Gateway", docs_url=None, redoc_url=None)
 
 app.add_middleware(
     CORSMiddleware,
@@ -85,14 +84,10 @@ SESSIONS_LOCK = asyncio.Lock()
 # ─── Settings ──────────────────────────────────────────────────────────────────
 SETTINGS: dict = {
     "rgb_mode": False,
-    "telegram_token": None,
-    "telegram_chat_id": None,
-    "telegram_enabled": False,
-    "telegram_bot_running": False,
-    "telegram_bot_pid": None,
-    "telegram_allowed_users": [],
     "default_protocol": "vless-ws",
     "default_port": 443,
+    "inbound_port": 443,
+    "inbound_protocol": "vless",
 }
 
 PROTOCOLS = ("vless-ws", "xhttp-packet-up", "xhttp-stream-up", "xhttp-stream-one")
@@ -219,100 +214,6 @@ async def remove_device_connection(uuid: str, client_ip: str):
                 if not device_connections[uuid]:
                     del device_connections[uuid]
 
-# ─── Telegram Bot Integration ─────────────────────────────────────────────────
-
-async def send_telegram_message(message: str) -> bool:
-    if not SETTINGS.get("telegram_enabled"):
-        return False
-    
-    token = SETTINGS.get("telegram_token")
-    chat_id = SETTINGS.get("telegram_chat_id")
-    
-    if not token or not chat_id:
-        return False
-    
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            url = f"https://api.telegram.org/bot{token}/sendMessage"
-            resp = await client.post(url, json={
-                "chat_id": chat_id,
-                "text": message,
-                "parse_mode": "HTML"
-            })
-            return resp.status_code == 200
-    except Exception as e:
-        logger.error(f"Telegram send error: {e}")
-        return False
-
-async def start_bot_process():
-    try:
-        if SETTINGS.get("telegram_bot_running", False):
-            return True
-        
-        env = os.environ.copy()
-        env["PANEL_URL"] = f"http://localhost:{CONFIG['port']}"
-        env["ADMIN_PASSWORD"] = CONFIG["admin_password"]
-        env["TELEGRAM_BOT_TOKEN"] = SETTINGS.get("telegram_token", "")
-        
-        allowed_users = SETTINGS.get("telegram_allowed_users", [])
-        if allowed_users:
-            env["ALLOWED_USERS"] = ",".join(str(u) for u in allowed_users)
-        
-        proc = subprocess.Popen(
-            [sys.executable, "telegram_bot.py"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-            env=env
-        )
-        
-        SETTINGS["telegram_bot_pid"] = proc.pid
-        SETTINGS["telegram_bot_running"] = True
-        await save_state()
-        
-        logger.info(f"✅ ربات تلگرام با PID {proc.pid} استارت خورد")
-        return True
-    except Exception as e:
-        logger.error(f"❌ خطا در استارت ربات: {e}")
-        SETTINGS["telegram_bot_running"] = False
-        return False
-
-async def stop_bot_process():
-    try:
-        pid = SETTINGS.get("telegram_bot_pid")
-        if pid:
-            try:
-                os.kill(pid, signal.SIGTERM)
-            except:
-                pass
-            SETTINGS["telegram_bot_pid"] = None
-        
-        SETTINGS["telegram_bot_running"] = False
-        await save_state()
-        logger.info("✅ ربات تلگرام متوقف شد")
-        return True
-    except Exception as e:
-        logger.error(f"❌ خطا در توقف ربات: {e}")
-        return False
-
-async def send_telegram_link_created(link_data: dict):
-    if not SETTINGS.get("telegram_enabled"):
-        return
-    
-    host = get_host()
-    msg = f"""🦅 <b>کانفیگ جدید ساخته شد!</b>
-
-📌 <b>نام:</b> {link_data.get('label', 'نامشخص')}
-🔑 <b>UUID:</b> <code>{link_data.get('uuid', '')}</code>
-📊 <b>حجم:</b> {fmt_bytes(link_data.get('limit_bytes', 0))}
-📱 <b>دستگاه‌ها:</b> {link_data.get('max_devices', 0)}
-📅 <b>انقضا:</b> {link_data.get('expires_at', 'نامحدود')}
-
-🔗 <b>لینک اشتراک:</b>
-<code>https://{host}/sub/{link_data.get('uuid', '')}</code>
-"""
-    await send_telegram_message(msg)
-
 # ─── Session Functions ──────────────────────────────────────────────────────
 
 async def create_session() -> str:
@@ -361,7 +262,7 @@ async def load_state():
                 AUTH["password_hash"] = data["password_hash"]
             if "settings" in data:
                 SETTINGS.update(data["settings"])
-            logger.info(f"📂 State loaded: {len(LINKS)} links, {len(SUBS)} subs")
+            logger.info(f"📂 State loaded: {len(LINKS)} links")
     except Exception as e:
         logger.warning(f"Could not load state: {e}")
 
@@ -393,98 +294,141 @@ async def startup():
     http_client = httpx.AsyncClient(limits=limits, timeout=timeout, follow_redirects=True)
     await load_state()
     
-    if SETTINGS.get("telegram_enabled") and SETTINGS.get("telegram_token"):
-        await start_bot_process()
-        await send_telegram_message("🦅 <b>پنل عقاب راه‌اندازی شد!</b>\n\n✅ سرور با موفقیت استارت خورد.")
-    
-    log_activity("system", "🦅 پنل عقاب v10 Pro راه‌اندازی شد", "ok")
-    logger.info(f"🦅 Eagle Gateway v10 Pro started on port {CONFIG['port']}")
+    log_activity("system", "🦅 Eagle Gateway راه‌اندازی شد", "ok")
+    logger.info(f"🦅 Eagle Gateway started on port {CONFIG['port']}")
 
 @app.on_event("shutdown")
 async def shutdown():
     await save_state()
     if http_client:
         await http_client.aclose()
+
+# ─── Dashboard Stats ──────────────────────────────────────────────────────────
+
+@app.get("/api/dashboard/stats")
+async def dashboard_stats(_=Depends(require_auth)):
+    """دریافت آمار داشبورد"""
+    disk_usage = psutil.disk_usage('/')
     
-    if SETTINGS.get("telegram_bot_running"):
-        await stop_bot_process()
-
-# ─── API: Telegram Bot Management ────────────────────────────────────────────
-
-@app.get("/api/telegram/status")
-async def get_telegram_status(_=Depends(require_auth)):
+    # سرعت لحظه‌ای (محاسبه از ترافیک ۵ ثانیه اخیر)
+    speed = 0
+    recent_traffic = sum(hourly_traffic.values())
+    
     return {
-        "enabled": SETTINGS.get("telegram_enabled", False),
-        "running": SETTINGS.get("telegram_bot_running", False),
-        "token_set": bool(SETTINGS.get("telegram_token")),
-        "chat_id_set": bool(SETTINGS.get("telegram_chat_id")),
-        "allowed_users": SETTINGS.get("telegram_allowed_users", []),
+        "traffic": {
+            "total": stats["total_bytes"],
+            "total_fmt": fmt_bytes(stats["total_bytes"]),
+            "today": sum(hourly_traffic.values()),
+            "today_fmt": fmt_bytes(sum(hourly_traffic.values()))
+        },
+        "requests": stats["total_requests"],
+        "uptime": uptime(),
+        "disk": {
+            "total": disk_usage.total,
+            "used": disk_usage.used,
+            "free": disk_usage.free,
+            "total_fmt": fmt_bytes(disk_usage.total),
+            "used_fmt": fmt_bytes(disk_usage.used),
+            "free_fmt": fmt_bytes(disk_usage.free),
+            "percent": disk_usage.percent
+        },
+        "connections": len(connections),
+        "speed": {
+            "download": 0,
+            "upload": 0,
+            "download_fmt": "0 B/s",
+            "upload_fmt": "0 B/s"
+        },
+        "links_count": len(LINKS),
+        "active_links": sum(1 for l in LINKS.values() if is_link_allowed(l))
     }
 
-@app.post("/api/telegram/toggle")
-async def toggle_telegram_bot(request: Request, _=Depends(require_auth)):
+# ─── ===== اینباند (Inbound) ===== ──────────────────────────────────────────
+
+@app.get("/api/inbound")
+async def get_inbound(_=Depends(require_auth)):
+    """دریافت تنظیمات اینباند"""
+    return {
+        "port": SETTINGS.get("inbound_port", 443),
+        "protocol": SETTINGS.get("inbound_protocol", "vless"),
+        "host": get_host(),
+        "is_active": True
+    }
+
+@app.post("/api/inbound")
+async def update_inbound(request: Request, _=Depends(require_auth)):
+    """بروزرسانی تنظیمات اینباند"""
     body = await request.json()
-    enabled = bool(body.get("enabled", False))
-    token = body.get("token", "").strip()
-    chat_id = body.get("chat_id", "").strip()
-    allowed_users = body.get("allowed_users", [])
+    port = body.get("port", 443)
+    protocol = body.get("protocol", "vless")
     
-    if enabled and (not token or not chat_id):
-        raise HTTPException(status_code=400, detail="برای فعال‌سازی، توکن و چت‌آیدی الزامی است")
+    if port < 1 or port > 65535:
+        raise HTTPException(status_code=400, detail="پورت نامعتبر")
     
-    SETTINGS["telegram_token"] = token if token else None
-    SETTINGS["telegram_chat_id"] = chat_id if chat_id else None
-    SETTINGS["telegram_enabled"] = enabled
-    SETTINGS["telegram_allowed_users"] = allowed_users if isinstance(allowed_users, list) else []
+    SETTINGS["inbound_port"] = port
+    SETTINGS["inbound_protocol"] = protocol
+    await save_state()
     
-    if enabled:
-        test_msg = await send_telegram_message("🦅 <b>ربات پنل عقاب در حال راه‌اندازی...</b>")
-        if not test_msg:
-            SETTINGS["telegram_enabled"] = False
-            await save_state()
-            raise HTTPException(status_code=400, detail="ارسال پیام تست ناموفق! توکن یا چت‌آیدی اشتباه است.")
-        
-        if not SETTINGS.get("telegram_bot_running"):
-            await start_bot_process()
-        
-        await send_telegram_message("✅ <b>ربات پنل عقاب با موفقیت فعال شد!</b>")
-        
-    else:
-        await stop_bot_process()
-        SETTINGS["telegram_enabled"] = False
+    log_activity("inbound", f"اینباند بروزرسانی شد: پورت {port}, پروتکل {protocol}", "info")
+    
+    return {"ok": True, "port": port, "protocol": protocol}
+
+# ─── ===== ساخت یوزر (از داخل اینباند) ===== ──────────────────────────────
+
+@app.post("/api/inbound/create-user")
+async def create_user_from_inbound(request: Request, _=Depends(require_auth)):
+    """ساخت یوزر جدید از طریق اینباند"""
+    body = await request.json()
+    label = (body.get("label") or "کاربر جدید").strip()[:60]
+    quota = float(body.get("quota", 0))
+    days = int(body.get("days", 30))
+    
+    uid = generate_uuid()
+    limit_bytes = 0 if quota <= 0 else int(quota * 1024 ** 3)
+    expires_at = (datetime.now() + timedelta(days=days)).isoformat() if days > 0 else None
+    
+    async with LINKS_LOCK:
+        LINKS[uid] = {
+            "label": label,
+            "limit_bytes": limit_bytes,
+            "used_bytes": 0,
+            "created_at": datetime.now().isoformat(),
+            "active": True,
+            "expires_at": expires_at,
+            "note": "",
+            "is_default": False,
+            "sub_id": None,
+            "protocol": SETTINGS.get("default_protocol", "vless-ws"),
+            "max_devices": 1,
+            "fingerprint": "chrome",
+            "password_hash": None,
+            "port": SETTINGS.get("inbound_port", 443),
+        }
     
     await save_state()
-    log_activity("telegram", f"ربات تلگرام {'فعال' if enabled else 'غیرفعال'} شد", "info")
+    log_activity("user", f"یوزر {label} از طریق اینباند ساخته شد", "ok")
+    
+    host = get_host()
+    port = SETTINGS.get("inbound_port", 443)
+    protocol = SETTINGS.get("default_protocol", "vless-ws")
+    vless_link = generate_vless_link(uid, host, remark=label, protocol=protocol, fingerprint="chrome", port=port)
     
     return {
-        "ok": True,
-        "settings": {
-            "telegram_enabled": SETTINGS["telegram_enabled"],
-            "telegram_bot_running": SETTINGS.get("telegram_bot_running", False),
-            "telegram_token_set": bool(SETTINGS.get("telegram_token")),
-            "telegram_chat_id_set": bool(SETTINGS.get("telegram_chat_id")),
-            "allowed_users": SETTINGS.get("telegram_allowed_users", []),
-        }
+        "uuid": uid,
+        "label": label,
+        "quota": quota,
+        "days": days,
+        "expires_at": expires_at,
+        "vless_link": vless_link,
+        "sub_url": f"https://{host}/sub/{uid}",
+        "port": port
     }
-
-@app.post("/api/telegram/send_test")
-async def send_test_message(request: Request, _=Depends(require_auth)):
-    msg = "🦅 <b>پیام تست از پنل عقاب</b>\n\n✅ اتصال برقرار است."
-    result = await send_telegram_message(msg)
-    if result:
-        return {"ok": True, "message": "پیام تست ارسال شد"}
-    else:
-        raise HTTPException(status_code=400, detail="ارسال پیام تست ناموفق!")
 
 # ─── API: Settings ─────────────────────────────────────────────────────────
 
 @app.get("/api/settings")
 async def get_settings(_=Depends(require_auth)):
-    return {
-        **SETTINGS,
-        "telegram_token_set": bool(SETTINGS.get("telegram_token")),
-        "telegram_chat_id_set": bool(SETTINGS.get("telegram_chat_id")),
-    }
+    return SETTINGS
 
 @app.post("/api/settings/rgb")
 async def toggle_rgb(request: Request, _=Depends(require_auth)):
@@ -493,33 +437,7 @@ async def toggle_rgb(request: Request, _=Depends(require_auth)):
     await save_state()
     return {"rgb_mode": SETTINGS["rgb_mode"]}
 
-@app.post("/api/settings/password")
-async def change_password(request: Request, _=Depends(require_auth)):
-    body = await request.json()
-    old_password = body.get("old_password", "").strip()
-    new_password = body.get("new_password", "").strip()
-    
-    if not old_password or not new_password:
-        raise HTTPException(status_code=400, detail="رمز فعلی و جدید الزامی است")
-    
-    if len(new_password) < 4:
-        raise HTTPException(status_code=400, detail="رمز جدید باید حداقل 4 کاراکتر باشد")
-    
-    if hash_password(old_password) != AUTH["password_hash"]:
-        raise HTTPException(status_code=403, detail="رمز فعلی اشتباه است")
-    
-    AUTH["password_hash"] = hash_password(new_password)
-    CONFIG["admin_password"] = new_password
-    os.environ["ADMIN_PASSWORD"] = new_password
-    
-    await save_state()
-    log_activity("settings", "رمز پنل تغییر کرد", "ok")
-    
-    await send_telegram_message(f"🔑 <b>رمز پنل تغییر کرد!</b>\n\n🔐 رمز جدید: <code>{new_password}</code>")
-    
-    return {"ok": True, "message": "رمز با موفقیت تغییر کرد"}
-
-# ─── API: Links ─────────────────────────────────────────────────────────────
+# ─── API: Links (Users) ─────────────────────────────────────────────────────
 
 @app.post("/api/links")
 async def create_link(request: Request, _=Depends(require_auth)):
@@ -539,9 +457,9 @@ async def create_link(request: Request, _=Depends(require_auth)):
     fingerprint = body.get("fingerprint", "chrome")
     config_password = body.get("password", "").strip()
     password_hash = hash_password(config_password) if config_password else None
-    port = int(body.get("port", 443))
+    port = int(body.get("port", SETTINGS.get("inbound_port", 443)))
     if port < 1 or port > 65535:
-        port = 443
+        port = SETTINGS.get("inbound_port", 443)
 
     uid = generate_uuid()
     async with LINKS_LOCK:
@@ -585,8 +503,6 @@ async def create_link(request: Request, _=Depends(require_auth)):
         "warning_config": "",
     }
     
-    asyncio.create_task(send_telegram_link_created(link_data))
-    
     return link_data
 
 @app.get("/api/links")
@@ -599,7 +515,7 @@ async def list_links(_=Depends(require_auth)):
     for uid, d in snap.items():
         proto = d.get("protocol", DEFAULT_PROTOCOL)
         fp = d.get("fingerprint", "chrome")
-        port = d.get("port", 443)
+        port = d.get("port", SETTINGS.get("inbound_port", 443))
         label = d.get("label", "کاربر")
         remark = f"عقاب-{label}"
         
@@ -608,6 +524,8 @@ async def list_links(_=Depends(require_auth)):
             if c.get("uuid") == uid:
                 if not last_connected or c.get("connected_at") > last_connected:
                     last_connected = c.get("connected_at")
+        
+        active = d.get("active", True) and not is_link_expired(d)
         
         result.append({
             "uuid": uid,
@@ -718,8 +636,6 @@ async def delete_link(uid: str, request: Request, _=Depends(require_auth)):
     asyncio.create_task(save_state())
     log_activity("link", f"کانفیگ «{label}» حذف شد", "err")
     
-    await send_telegram_message(f"🗑️ <b>کانفیگ حذف شد</b>\n\n📌 نام: {label}\n🔑 UUID: <code>{uid}</code>")
-    
     return {"ok": True, "deleted": uid}
 
 # ─── API: Subs ─────────────────────────────────────────────────────────────
@@ -744,8 +660,6 @@ async def create_sub(request: Request, _=Depends(require_auth)):
     asyncio.create_task(save_state())
     log_activity("sub", f"گروه «{name}» ساخته شد", "ok")
     host = get_host()
-    
-    await send_telegram_message(f"📁 <b>گروه اشتراک جدید</b>\n\n📌 نام: {name}\n🔗 لینک: https://{host}/sub-group/{uuid_key}")
     
     return {
         "sub_id": sub_id,
@@ -813,8 +727,6 @@ async def delete_sub(sub_id: str, _=Depends(require_auth)):
                 link["sub_id"] = None
     asyncio.create_task(save_state())
     log_activity("sub", f"گروه «{name}» حذف شد", "warn")
-    
-    await send_telegram_message(f"🗑️ <b>گروه اشتراک حذف شد</b>\n\n📌 نام: {name}")
     
     return {"ok": True, "deleted": sub_id}
 
@@ -980,7 +892,6 @@ async def restore_backup(request: Request, _=Depends(require_auth)):
         
         await save_state()
         log_activity("backup", "بکاپ بازیابی شد", "ok")
-        await send_telegram_message("🔄 <b>بکاپ با موفقیت بازیابی شد</b>")
         return {"ok": True, "message": "بکاپ با موفقیت بازیابی شد"}
     except Exception as e:
         logger.error(f"Backup restore error: {e}")
@@ -1058,16 +969,6 @@ async def check_and_use(uid: str, n: int) -> bool:
         link["used_bytes"] = link.get("used_bytes", 0) + n
         stats["total_bytes"] = stats.get("total_bytes", 0) + n
         hourly_traffic[now_ir().strftime("%H:00")] = hourly_traffic.get(now_ir().strftime("%H:00"), 0) + n
-        
-        limit = link.get("limit_bytes", 0)
-        used = link.get("used_bytes", 0)
-        if limit > 0 and used >= limit * 0.9 and used < limit:
-            asyncio.create_task(send_telegram_message(
-                f"⚠️ <b>هشدار مصرف</b>\n\n"
-                f"📌 کاربر: {link.get('label', 'نامشخص')}\n"
-                f"📊 مصرف: {used / (1024**3):.2f} GB از {limit / (1024**3):.2f} GB\n"
-                f"🔴 <b>{((used / limit) * 100):.1f}%</b>"
-            ))
     return True
 
 async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: str, uid: str):
@@ -1151,13 +1052,6 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
     
     logger.info(f"✅ WS [{conn_id}] uuid={uuid[:8]}… ip={client_ip} total={len(connections)}")
     log_activity("connection", f"اتصال جدید از {client_ip} (کانفیگ {link.get('label','?')})", "info")
-    
-    asyncio.create_task(send_telegram_message(
-        f"🔌 <b>اتصال جدید</b>\n\n"
-        f"📌 کاربر: {link.get('label', 'نامشخص')}\n"
-        f"🌐 IP: {client_ip}\n"
-        f"⏱️ زمان: {datetime.now().strftime('%H:%M:%S')}"
-    ))
     
     writer = None
 
@@ -1274,18 +1168,25 @@ async def subscription_single(uuid: str):
     label = link.get("label", "کاربر")
     remark = f"عقاب-{label}"
     
+    last_connected = None
+    for c in connections.values():
+        if c.get("uuid") == uuid:
+            if not last_connected or c.get("connected_at") > last_connected:
+                last_connected = c.get("connected_at")
+    
     link_data = {
         **link,
         "expired": is_link_expired(link),
         "active_connections": active_connections_count,
         "active_connections_list": active_connections_list,
+        "last_connected_at": last_connected,
         "vless_link": generate_vless_link(
             uuid, 
             get_host(), 
             remark=remark,
             protocol=link.get("protocol", DEFAULT_PROTOCOL),
             fingerprint=link.get("fingerprint", "chrome"),
-            port=link.get("port", 443)
+            port=link.get("port", SETTINGS.get("inbound_port", 443))
         ),
         "sub_url": f"https://{get_host()}/sub/{uuid}",
     }
@@ -1301,7 +1202,7 @@ async def subscription_all(_=Depends(require_auth)):
         for uid, d in LINKS.items():
             if is_link_allowed(d):
                 fp = d.get("fingerprint", "chrome")
-                port = d.get("port", 443)
+                port = d.get("port", SETTINGS.get("inbound_port", 443))
                 label = d.get("label", "کاربر")
                 remark = f"عقاب-{label}"
                 lines.append(generate_vless_link(uid, host, remark=remark, protocol=d.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port))
@@ -1329,7 +1230,7 @@ async def sub_group_subscription(uuid_key: str, request: Request):
             link = LINKS.get(lid)
             if link and is_link_allowed(link):
                 fp = link.get("fingerprint", "chrome")
-                port = link.get("port", 443)
+                port = link.get("port", SETTINGS.get("inbound_port", 443))
                 label = link.get("label", "کاربر")
                 remark = f"عقاب-{label}"
                 lines.append(generate_vless_link(lid, host, remark=remark, protocol=link.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port))
@@ -1378,7 +1279,7 @@ async def public_sub_data(uuid_key: str, request: Request):
         active_conns += conn_count
         proto = link.get("protocol", DEFAULT_PROTOCOL)
         fp = link.get("fingerprint", "chrome")
-        port = link.get("port", 443)
+        port = link.get("port", SETTINGS.get("inbound_port", 443))
         label = link.get("label", "کاربر")
         remark = f"عقاب-{label}"
         links_out.append({
@@ -1444,7 +1345,7 @@ async def root():
     <body>
     <div class="card">
         <h1>🦅</h1>
-        <h2>Eagle Gateway v10 Pro</h2>
+        <h2>Eagle Gateway</h2>
         <p class="sub">پنل مدیریت فیلترشکن</p>
         <a href="/login">ورود به پنل →</a>
     </div>
