@@ -12,7 +12,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMo
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
 # ─── تنظیمات ──────────────────────────────────────────────────────────────────
-PANEL_URL = os.environ.get("PANEL_URL", "https://arg-production-3082.up.railway.app")
+PANEL_URL = os.environ.get("PANEL_URL", "http://localhost:8000")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "123456")
 ALLOWED_USERS = os.environ.get("ALLOWED_USERS", "").split(",")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -182,8 +182,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🦅 <b>به پنل عقاب خوش آمدید!</b>\n\n"
         f"📌 <b>کاربر:</b> {update.effective_user.first_name}\n"
         f"🔗 <b>پنل:</b> {PANEL_URL}\n\n"
-        f"از دکمه‌های زیر پنل را مدیریت کنید.\n"
-        f"💡 تمام عملیات از طریق دکمه‌ها انجام میشود.",
+        f"از دکمه‌های زیر پنل را مدیریت کنید.",
         parse_mode=ParseMode.HTML,
         reply_markup=get_main_keyboard()
     )
@@ -255,10 +254,14 @@ async def show_user_detail(update: Update, context: ContextTypes.DEFAULT_TYPE, u
     host = get_host()
     used = link.get('used_bytes', 0)
     limit = link.get('limit_bytes', 0)
-    active = link.get('active', True) and not link.get('expired', False)
     pct = 0 if limit == 0 else min(100, (used / limit) * 100)
     
-    conn_count = sum(1 for c in connections.values() if c.get("uuid") == uuid)
+    # دریافت تعداد اتصالات از API
+    conn_resp = await panel_request("GET", "/api/connections")
+    conn_count = 0
+    if "error" not in conn_resp:
+        conns = conn_resp.get("connections", [])
+        conn_count = sum(1 for c in conns if c.get("label") == link.get('label'))
     
     msg = (
         f"🦅 <b>اطلاعات کاربر</b>\n"
@@ -379,7 +382,7 @@ async def show_backup(update: Update, context: ContextTypes.DEFAULT_TYPE, query=
     with open(filename, 'w', encoding='utf-8') as f:
         f.write(backup_data)
     
-    msg = f"🔄 <b>بکاپ گرفته شد!</b>\n\n📅 زمان: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n📁 فایل: {filename}"
+    msg = f"🔄 <b>بکاپ گرفته شد!</b>\n\n📅 زمان: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     
     if query:
         await query.edit_message_text(msg, parse_mode=ParseMode.HTML)
@@ -656,7 +659,7 @@ async def delete_user(update: Update, context: ContextTypes.DEFAULT_TYPE, uuid: 
         [InlineKeyboardButton("✅ بله، حذف کن", callback_data=f"confirm_delete_{uuid}")],
         [InlineKeyboardButton("❌ لغو", callback_data=f"user_{uuid}")],
     ]
-    msg = f"⚠️ <b>آیا از حذف کاربر «{label}» مطمئن هستید؟</b>\n\nاین عملیات غیرقابل بازگشت است!"
+    msg = f"⚠️ <b>آیا از حذف کاربر «{label}» مطمئن هستید؟</b>"
     
     if query:
         await query.edit_message_text(msg, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -734,7 +737,6 @@ async def process_change_password(update: Update, context: ContextTypes.DEFAULT_
             await update.message.reply_text("❌ رمزها مطابقت ندارند! دوباره تلاش کنید:")
             return
         
-        # ارسال درخواست به پنل برای تغییر رمز
         result = await panel_request("POST", "/api/settings/password", {
             "old_password": action["old_password"],
             "new_password": action["new_password"]
@@ -749,7 +751,6 @@ async def process_change_password(update: Update, context: ContextTypes.DEFAULT_
                 parse_mode=ParseMode.HTML,
                 reply_markup=get_main_keyboard()
             )
-            # به‌روزرسانی رمز در متغیر محلی
             global ADMIN_PASSWORD
             ADMIN_PASSWORD = action["new_password"]
             panel_session["token"] = None
@@ -767,8 +768,7 @@ async def get_panel_link(update: Update, context: ContextTypes.DEFAULT_TYPE, que
         f"🌐 <b>آدرس پنل:</b>\n"
         f"<code>{panel_url}</code>\n"
         f"━━━━━━━━━━━━━━━━\n"
-        f"🔑 <b>رمز ورود:</b> <code>{ADMIN_PASSWORD}</code>\n\n"
-        f"💡 لینک بالا را کپی کنید و در مرورگر باز کنید."
+        f"🔑 <b>رمز ورود:</b> <code>{ADMIN_PASSWORD}</code>"
     )
     
     keyboard = [
@@ -821,7 +821,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if data == "main_menu":
         await query.edit_message_text(
-            "🦅 <b>منوی اصلی پنل عقاب</b>\n\nاز دکمه‌های زیر برای مدیریت استفاده کنید.",
+            "🦅 <b>منوی اصلی پنل عقاب</b>",
             parse_mode=ParseMode.HTML,
             reply_markup=get_main_keyboard()
         )
@@ -885,9 +885,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"📥 <b>مصرف کل:</b> {format_bytes(used)}\n"
                 f"📊 <b>مصرف امروز:</b> {format_bytes(today_bytes)}\n"
                 f"📦 <b>سهمیه:</b> {format_bytes(limit) if limit > 0 else '∞'}\n"
-                f"📈 <b>درصد:</b> {pct:.1f}%\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"<i>برای ریست مصرف از پنل وب استفاده کنید</i>"
+                f"📈 <b>درصد:</b> {pct:.1f}%"
             )
             await query.edit_message_text(
                 msg,
@@ -926,7 +924,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif data == "settings_panel":
         await query.edit_message_text(
-            "⚙️ <b>تنظیمات پنل عقاب</b>\n\nاز دکمه‌های زیر استفاده کنید:",
+            "⚙️ <b>تنظیمات پنل عقاب</b>",
             parse_mode=ParseMode.HTML,
             reply_markup=get_settings_keyboard()
         )
@@ -954,14 +952,13 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "🦅 <b>راهنمای ربات پنل عقاب</b>\n\n"
             "📌 <b>قابلیت‌ها:</b>\n"
-            "• 📊 داشبورد - نمایش آمار کلی پنل\n"
-            "• 👥 کاربران - لیست و مدیریت کاربران\n"
-            "• ➕ ساخت کاربر - ساخت کاربر جدید با تنظیمات کامل\n"
-            "• 🔌 اتصالات زنده - نمایش اتصالات فعال\n"
-            "• 📈 آمار - آمار کامل پنل\n"
-            "• 🔄 بکاپ - گرفتن بکاپ از پنل\n"
-            "• ⚙️ تنظیمات پنل - تغییر رمز و دریافت لینک\n\n"
-            "💡 تمام عملیات از طریق دکمه‌ها انجام میشود.",
+            "• 📊 داشبورد - آمار کلی\n"
+            "• 👥 کاربران - لیست و مدیریت\n"
+            "• ➕ ساخت کاربر - ساخت کاربر جدید\n"
+            "• 🔌 اتصالات زنده - اتصالات فعال\n"
+            "• 📈 آمار - آمار کامل\n"
+            "• 🔄 بکاپ - گرفتن بکاپ\n"
+            "• ⚙️ تنظیمات - تغییر رمز و لینک",
             parse_mode=ParseMode.HTML,
             reply_markup=get_main_keyboard()
         )
@@ -1016,13 +1013,13 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     return
                 await update.message.reply_text(f"❌ خطا: {result.get('error')}")
             else:
-                await update.message.reply_text(f"✅ کاربر «{action.get('label', '')}» با موفقیت حذف شد!", reply_markup=get_main_keyboard())
+                await update.message.reply_text(f"✅ کاربر «{action.get('label', '')}» حذف شد!", reply_markup=get_main_keyboard())
             
             del pending_actions[user_id]
             return
     
     await update.message.reply_text(
-        "❌ دستور ناشناخته!\nاز /menu برای نمایش منوی اصلی استفاده کنید.",
+        "❌ دستور ناشناخته!\nاز /menu استفاده کنید.",
         reply_markup=get_main_keyboard()
     )
 
