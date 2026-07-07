@@ -90,6 +90,7 @@ SETTINGS: dict = {
     "telegram_enabled": False,
     "telegram_bot_running": False,
     "telegram_bot_pid": None,
+    "telegram_allowed_users": [],  # لیست کاربران مجاز تلگرام
     "default_protocol": "vless-ws",
     "default_port": 443,
 }
@@ -248,10 +249,18 @@ async def start_bot_process():
         if SETTINGS.get("telegram_bot_running", False):
             return True
         
+        # محیط ربات
         env = os.environ.copy()
         env["PANEL_URL"] = f"http://localhost:{CONFIG['port']}"
         env["ADMIN_PASSWORD"] = CONFIG["admin_password"]
+        env["TELEGRAM_BOT_TOKEN"] = SETTINGS.get("telegram_token", "")
         
+        # کاربران مجاز
+        allowed_users = SETTINGS.get("telegram_allowed_users", [])
+        if allowed_users:
+            env["ALLOWED_USERS"] = ",".join(str(u) for u in allowed_users)
+        
+        # استارت ربات
         proc = subprocess.Popen(
             [sys.executable, "telegram_bot.py"],
             stdout=subprocess.DEVNULL,
@@ -275,7 +284,10 @@ async def stop_bot_process():
     try:
         pid = SETTINGS.get("telegram_bot_pid")
         if pid:
-            os.kill(pid, signal.SIGTERM)
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except:
+                pass
             SETTINGS["telegram_bot_pid"] = None
         
         SETTINGS["telegram_bot_running"] = False
@@ -409,6 +421,7 @@ async def get_telegram_status(_=Depends(require_auth)):
         "running": SETTINGS.get("telegram_bot_running", False),
         "token_set": bool(SETTINGS.get("telegram_token")),
         "chat_id_set": bool(SETTINGS.get("telegram_chat_id")),
+        "allowed_users": SETTINGS.get("telegram_allowed_users", []),
     }
 
 @app.post("/api/telegram/toggle")
@@ -417,27 +430,33 @@ async def toggle_telegram_bot(request: Request, _=Depends(require_auth)):
     enabled = bool(body.get("enabled", False))
     token = body.get("token", "").strip()
     chat_id = body.get("chat_id", "").strip()
+    allowed_users = body.get("allowed_users", [])
     
     if enabled and (not token or not chat_id):
         raise HTTPException(status_code=400, detail="برای فعال‌سازی، توکن و چت‌آیدی الزامی است")
     
+    # ذخیره تنظیمات
     SETTINGS["telegram_token"] = token if token else None
     SETTINGS["telegram_chat_id"] = chat_id if chat_id else None
     SETTINGS["telegram_enabled"] = enabled
+    SETTINGS["telegram_allowed_users"] = allowed_users if isinstance(allowed_users, list) else []
     
     if enabled:
+        # تست اتصال
         test_msg = await send_telegram_message("🦅 <b>ربات پنل عقاب در حال راه‌اندازی...</b>")
         if not test_msg:
             SETTINGS["telegram_enabled"] = False
             await save_state()
             raise HTTPException(status_code=400, detail="ارسال پیام تست ناموفق! توکن یا چت‌آیدی اشتباه است.")
         
+        # استارت ربات
         if not SETTINGS.get("telegram_bot_running"):
             await start_bot_process()
         
         await send_telegram_message("✅ <b>ربات پنل عقاب با موفقیت فعال شد!</b>")
         
     else:
+        # غیرفعال کردن ربات
         await stop_bot_process()
         SETTINGS["telegram_enabled"] = False
     
@@ -451,8 +470,19 @@ async def toggle_telegram_bot(request: Request, _=Depends(require_auth)):
             "telegram_bot_running": SETTINGS.get("telegram_bot_running", False),
             "telegram_token_set": bool(SETTINGS.get("telegram_token")),
             "telegram_chat_id_set": bool(SETTINGS.get("telegram_chat_id")),
+            "allowed_users": SETTINGS.get("telegram_allowed_users", []),
         }
     }
+
+@app.post("/api/telegram/send_test")
+async def send_test_message(request: Request, _=Depends(require_auth)):
+    """ارسال پیام تست به تلگرام"""
+    msg = "🦅 <b>پیام تست از پنل عقاب</b>\n\n✅ اتصال برقرار است."
+    result = await send_telegram_message(msg)
+    if result:
+        return {"ok": True, "message": "پیام تست ارسال شد"}
+    else:
+        raise HTTPException(status_code=400, detail="ارسال پیام تست ناموفق!")
 
 # ─── API: Settings ─────────────────────────────────────────────────────────
 
@@ -470,6 +500,37 @@ async def toggle_rgb(request: Request, _=Depends(require_auth)):
     SETTINGS["rgb_mode"] = bool(body.get("enabled", False))
     await save_state()
     return {"rgb_mode": SETTINGS["rgb_mode"]}
+
+@app.post("/api/settings/password")
+async def change_password(request: Request, _=Depends(require_auth)):
+    """تغییر رمز پنل"""
+    body = await request.json()
+    old_password = body.get("old_password", "").strip()
+    new_password = body.get("new_password", "").strip()
+    
+    if not old_password or not new_password:
+        raise HTTPException(status_code=400, detail="رمز فعلی و جدید الزامی است")
+    
+    if len(new_password) < 4:
+        raise HTTPException(status_code=400, detail="رمز جدید باید حداقل 4 کاراکتر باشد")
+    
+    if hash_password(old_password) != AUTH["password_hash"]:
+        raise HTTPException(status_code=403, detail="رمز فعلی اشتباه است")
+    
+    # تغییر رمز
+    AUTH["password_hash"] = hash_password(new_password)
+    CONFIG["admin_password"] = new_password
+    
+    # آپدیت محیط
+    os.environ["ADMIN_PASSWORD"] = new_password
+    
+    await save_state()
+    log_activity("settings", "رمز پنل تغییر کرد", "ok")
+    
+    # ارسال نوتیفیکیشن به تلگرام
+    await send_telegram_message(f"🔑 <b>رمز پنل تغییر کرد!</b>\n\n🔐 رمز جدید: <code>{new_password}</code>")
+    
+    return {"ok": True, "message": "رمز با موفقیت تغییر کرد"}
 
 # ─── API: Links ─────────────────────────────────────────────────────────────
 
@@ -1179,6 +1240,14 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
         connections.pop(conn_id, None)
         await remove_device_connection(uuid, client_ip)
         logger.info(f"🔌 WS closed [{conn_id}] total={len(connections)}")
+
+# ─── XHTTP ──────────────────────────────────────────────────────────────────
+
+try:
+    from xhttp_siz10 import router as xhttp_router
+    app.include_router(xhttp_router)
+except ImportError:
+    pass
 
 # ─── HTTP Proxy ────────────────────────────────────────────────────────────
 
