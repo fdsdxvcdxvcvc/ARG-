@@ -6,7 +6,6 @@ import secrets
 import time
 import aiofiles
 import psutil
-import shutil
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from urllib.parse import quote
@@ -299,7 +298,6 @@ async def startup():
     timeout = httpx.Timeout(30.0, connect=10.0)
     http_client = httpx.AsyncClient(limits=limits, timeout=timeout, follow_redirects=True)
     await load_state()
-    
     log_activity("system", "🦅 Eagle Gateway راه‌اندازی شد", "ok")
     logger.info(f"🦅 Eagle Gateway started on port {CONFIG['port']}")
 
@@ -313,11 +311,8 @@ async def shutdown():
 
 @app.get("/api/dashboard/stats")
 async def dashboard_stats(_=Depends(require_auth)):
-    """دریافت آمار کامل داشبورد"""
     disk_usage = psutil.disk_usage('/')
     global last_speed_check, last_speed_bytes
-    
-    # محاسبه سرعت لحظه‌ای
     now = time.time()
     elapsed = now - last_speed_check
     if elapsed >= 1:
@@ -326,7 +321,6 @@ async def dashboard_stats(_=Depends(require_auth)):
         last_speed_bytes = stats["total_bytes"]
     else:
         speed = 0
-    
     return {
         "traffic": {
             "total": stats["total_bytes"],
@@ -402,26 +396,6 @@ async def set_bandwidth(request: Request, _=Depends(require_auth)):
     await save_state()
     return {"limit": limit}
 
-# ─── ===== Scan ===== ─────────────────────────────────────────────────────────
-
-@app.get("/api/scan")
-async def scan_network(_=Depends(require_auth)):
-    """اسکن کانفیگ‌ها و بررسی وضعیت"""
-    results = []
-    async with LINKS_LOCK:
-        for uid, link in LINKS.items():
-            status = "✅ فعال" if is_link_allowed(link) else "❌ غیرفعال"
-            if link.get("expired", False):
-                status = "⛔ منقضی"
-            results.append({
-                "uuid": uid,
-                "label": link.get("label", "نامشخص"),
-                "status": status,
-                "used": fmt_bytes(link.get("used_bytes", 0)),
-                "limit": fmt_bytes(link.get("limit_bytes", 0)) if link.get("limit_bytes", 0) > 0 else "∞"
-            })
-    return {"results": results, "count": len(results)}
-
 # ─── ===== Inbound ===== ─────────────────────────────────────────────────────
 
 @app.get("/api/inbound")
@@ -473,7 +447,7 @@ async def toggle_rgb(request: Request, _=Depends(require_auth)):
     await save_state()
     return {"rgb_mode": SETTINGS["rgb_mode"]}
 
-# ─── API: Links (Users) ─────────────────────────────────────────────────────
+# ─── ===== API: Links (Users) with Clean IPs ===== ────────────────────────────
 
 @app.post("/api/links")
 async def create_link(request: Request, _=Depends(require_auth)):
@@ -496,6 +470,11 @@ async def create_link(request: Request, _=Depends(require_auth)):
     port = int(body.get("port", SETTINGS.get("inbound_port", 443)))
     if port < 1 or port > 65535:
         port = SETTINGS.get("inbound_port", 443)
+    
+    # ✅ دریافت آی‌پی‌های تمیز انتخاب شده
+    clean_ips = body.get("clean_ips", [])
+    if not clean_ips or not isinstance(clean_ips, list):
+        clean_ips = []
 
     uid = generate_uuid()
     async with LINKS_LOCK:
@@ -514,6 +493,7 @@ async def create_link(request: Request, _=Depends(require_auth)):
             "fingerprint": fingerprint,
             "password_hash": password_hash,
             "port": port,
+            "clean_ips": clean_ips,  # ✅ ذخیره آی‌پی‌های تمیز
         }
 
     if sub_id:
@@ -528,13 +508,32 @@ async def create_link(request: Request, _=Depends(require_auth)):
     host = get_host()
     
     remark = f"عقاب-{label}"
-    main_link = generate_vless_link(uid, host, remark=remark, protocol=protocol, fingerprint=fingerprint, port=port)
+    
+    # ✅ ساخت لینک‌های کانفیگ برای هر آی‌پی تمیز
+    vless_links = []
+    if clean_ips:
+        for i, clean_ip in enumerate(clean_ips[:3]):  # حداکثر ۳ آی‌پی
+            # استفاده از آی‌پی به جای هاست
+            link_url = generate_vless_link(
+                uid, 
+                clean_ip,  # ✅ آی‌پی تمیز به جای هاست
+                remark=f"{remark}-{i+1}", 
+                protocol=protocol, 
+                fingerprint=fingerprint, 
+                port=port
+            )
+            vless_links.append(link_url)
+    else:
+        # اگر آی‌پی تمیز انتخاب نشده، از هاست پیش‌فرض استفاده کن
+        main_link = generate_vless_link(uid, host, remark=remark, protocol=protocol, fingerprint=fingerprint, port=port)
+        vless_links.append(main_link)
     
     link_data = {
         "uuid": uid,
         **LINKS[uid],
         "has_password": password_hash is not None,
-        "vless_link": main_link,
+        "vless_link": vless_links[0] if vless_links else "",
+        "vless_links": vless_links,  # ✅ لیست کامل لینک‌ها
         "sub_url": f"https://{host}/sub/{uid}",
         "warning_config": "",
     }
@@ -554,6 +553,7 @@ async def list_links(_=Depends(require_auth)):
         port = d.get("port", SETTINGS.get("inbound_port", 443))
         label = d.get("label", "کاربر")
         remark = f"عقاب-{label}"
+        clean_ips = d.get("clean_ips", [])
         
         last_connected = None
         for c in connections.values():
@@ -562,6 +562,22 @@ async def list_links(_=Depends(require_auth)):
                     last_connected = c.get("connected_at")
         
         active = d.get("active", True) and not is_link_expired(d)
+        
+        # ساخت لینک‌ها
+        vless_links = []
+        if clean_ips:
+            for i, clean_ip in enumerate(clean_ips[:3]):
+                link_url = generate_vless_link(
+                    uid, clean_ip, 
+                    remark=f"{remark}-{i+1}", 
+                    protocol=proto, 
+                    fingerprint=fp, 
+                    port=port
+                )
+                vless_links.append(link_url)
+        else:
+            main_link = generate_vless_link(uid, host, remark=remark, protocol=proto, fingerprint=fp, port=port)
+            vless_links.append(main_link)
         
         result.append({
             "uuid": uid,
@@ -573,7 +589,9 @@ async def list_links(_=Depends(require_auth)):
             "has_password": d.get("password_hash") is not None,
             "port": port,
             "last_connected_at": last_connected,
-            "vless_link": generate_vless_link(uid, host, remark=remark, protocol=proto, fingerprint=fp, port=port),
+            "vless_link": vless_links[0] if vless_links else "",
+            "vless_links": vless_links,
+            "clean_ips": clean_ips,
             "sub_url": f"https://{host}/sub/{uid}",
             "warning_config": "",
         })
@@ -623,6 +641,8 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             port = int(body["port"])
             if 1 <= port <= 65535:
                 link["port"] = port
+        if "clean_ips" in body:
+            link["clean_ips"] = body["clean_ips"] if isinstance(body["clean_ips"], list) else []
         new_sub = body.get("sub_id", "UNCHANGED")
         if new_sub != "UNCHANGED":
             link["sub_id"] = new_sub or None
