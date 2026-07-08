@@ -91,6 +91,7 @@ SETTINGS: dict = {
     "inbound_protocol": "vless",
     "clean_ips": [],
     "bandwidth_limit": 0,
+    "default_security": "tls",  # ✅ اضافه شد
 }
 
 PROTOCOLS = ("vless-ws", "xhttp-packet-up", "xhttp-stream-up", "xhttp-stream-one")
@@ -169,20 +170,30 @@ def is_link_allowed(link: dict | None) -> bool:
         return False
     return True
 
+# ─── ✅ تابع جدید با پشتیبانی از SNI و Security ───────────────────────────
+
 def generate_vless_link(uuid: str, host: str, remark: str = "", protocol: str = DEFAULT_PROTOCOL, 
-                        fingerprint: str = "chrome", port: int = 443) -> str:
+                        fingerprint: str = "chrome", port: int = 443, 
+                        sni: str = None, security: str = "tls") -> str:
+    """
+    ساخت لینک VLESS با پشتیبانی کامل از SNI و Security
+    """
     if not remark:
         remark = "عقاب"
+    
+    # اگر SNI داده نشده، از دامنه اصلی استفاده کن
+    if not sni:
+        sni = get_host()
     
     if protocol == "vless-ws":
         path = f"/ws/{uuid}"
         params = {
             "encryption": "none",
-            "security": "tls",
+            "security": security,
             "type": "ws",
             "host": host,
             "path": path,
-            "sni": host,
+            "sni": sni,
             "fp": fingerprint,
             "alpn": "http/1.1",
         }
@@ -191,12 +202,12 @@ def generate_vless_link(uuid: str, host: str, remark: str = "", protocol: str = 
         path = f"/xhttp-siz10/{mode}/{uuid}"
         params = {
             "encryption": "none",
-            "security": "tls",
+            "security": security,
             "type": "xhttp",
             "mode": mode,
             "host": host,
             "path": path,
-            "sni": host,
+            "sni": sni,
             "fp": fingerprint,
             "alpn": "h2,http/1.1",
         }
@@ -447,7 +458,7 @@ async def toggle_rgb(request: Request, _=Depends(require_auth)):
     await save_state()
     return {"rgb_mode": SETTINGS["rgb_mode"]}
 
-# ─── ===== API: Links (Users) with Clean IPs ===== ────────────────────────────
+# ─── ===== API: Links (Users) with SNI Support ===== ────────────────────────────
 
 @app.post("/api/links")
 async def create_link(request: Request, _=Depends(require_auth)):
@@ -471,7 +482,11 @@ async def create_link(request: Request, _=Depends(require_auth)):
     if port < 1 or port > 65535:
         port = SETTINGS.get("inbound_port", 443)
     
-    # ✅ دریافت آی‌پی‌های تمیز انتخاب شده
+    # دریافت تنظیمات امنیتی
+    security = body.get("security", SETTINGS.get("default_security", "tls"))
+    sni = body.get("sni", get_host())
+    
+    # دریافت آی‌پی‌های تمیز انتخاب شده
     clean_ips = body.get("clean_ips", [])
     if not clean_ips or not isinstance(clean_ips, list):
         clean_ips = []
@@ -493,7 +508,9 @@ async def create_link(request: Request, _=Depends(require_auth)):
             "fingerprint": fingerprint,
             "password_hash": password_hash,
             "port": port,
-            "clean_ips": clean_ips,  # ✅ ذخیره آی‌پی‌های تمیز
+            "clean_ips": clean_ips,
+            "security": security,
+            "sni": sni,
         }
 
     if sub_id:
@@ -509,23 +526,28 @@ async def create_link(request: Request, _=Depends(require_auth)):
     
     remark = f"عقاب-{label}"
     
-    # ✅ ساخت لینک‌های کانفیگ برای هر آی‌پی تمیز
+    # ساخت لینک‌های کانفیگ برای هر آی‌پی تمیز
     vless_links = []
     if clean_ips:
         for i, clean_ip in enumerate(clean_ips[:3]):  # حداکثر ۳ آی‌پی
-            # استفاده از آی‌پی به جای هاست
             link_url = generate_vless_link(
                 uid, 
-                clean_ip,  # ✅ آی‌پی تمیز به جای هاست
+                clean_ip,  # host = آی‌پی تمیز
                 remark=f"{remark}-{i+1}", 
                 protocol=protocol, 
                 fingerprint=fingerprint, 
-                port=port
+                port=port,
+                sni=sni,  # ✅ SNI = دامنه اصلی
+                security=security  # ✅ Security
             )
             vless_links.append(link_url)
     else:
         # اگر آی‌پی تمیز انتخاب نشده، از هاست پیش‌فرض استفاده کن
-        main_link = generate_vless_link(uid, host, remark=remark, protocol=protocol, fingerprint=fingerprint, port=port)
+        main_link = generate_vless_link(
+            uid, host, remark=remark, protocol=protocol, 
+            fingerprint=fingerprint, port=port,
+            sni=sni, security=security
+        )
         vless_links.append(main_link)
     
     link_data = {
@@ -533,7 +555,7 @@ async def create_link(request: Request, _=Depends(require_auth)):
         **LINKS[uid],
         "has_password": password_hash is not None,
         "vless_link": vless_links[0] if vless_links else "",
-        "vless_links": vless_links,  # ✅ لیست کامل لینک‌ها
+        "vless_links": vless_links,
         "sub_url": f"https://{host}/sub/{uid}",
         "warning_config": "",
     }
@@ -554,6 +576,8 @@ async def list_links(_=Depends(require_auth)):
         label = d.get("label", "کاربر")
         remark = f"عقاب-{label}"
         clean_ips = d.get("clean_ips", [])
+        security = d.get("security", SETTINGS.get("default_security", "tls"))
+        sni = d.get("sni", host)
         
         last_connected = None
         for c in connections.values():
@@ -572,11 +596,17 @@ async def list_links(_=Depends(require_auth)):
                     remark=f"{remark}-{i+1}", 
                     protocol=proto, 
                     fingerprint=fp, 
-                    port=port
+                    port=port,
+                    sni=sni,
+                    security=security
                 )
                 vless_links.append(link_url)
         else:
-            main_link = generate_vless_link(uid, host, remark=remark, protocol=proto, fingerprint=fp, port=port)
+            main_link = generate_vless_link(
+                uid, host, remark=remark, protocol=proto, 
+                fingerprint=fp, port=port,
+                sni=sni, security=security
+            )
             vless_links.append(main_link)
         
         result.append({
@@ -592,6 +622,8 @@ async def list_links(_=Depends(require_auth)):
             "vless_link": vless_links[0] if vless_links else "",
             "vless_links": vless_links,
             "clean_ips": clean_ips,
+            "security": security,
+            "sni": sni,
             "sub_url": f"https://{host}/sub/{uid}",
             "warning_config": "",
         })
@@ -643,6 +675,10 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
                 link["port"] = port
         if "clean_ips" in body:
             link["clean_ips"] = body["clean_ips"] if isinstance(body["clean_ips"], list) else []
+        if "security" in body:
+            link["security"] = body["security"]
+        if "sni" in body:
+            link["sni"] = body["sni"]
         new_sub = body.get("sub_id", "UNCHANGED")
         if new_sub != "UNCHANGED":
             link["sub_id"] = new_sub or None
@@ -1238,6 +1274,10 @@ async def subscription_single(uuid: str):
             if not last_connected or c.get("connected_at") > last_connected:
                 last_connected = c.get("connected_at")
     
+    # دریافت تنظیمات امنیتی
+    security = link.get("security", SETTINGS.get("default_security", "tls"))
+    sni = link.get("sni", get_host())
+    
     link_data = {
         **link,
         "expired": is_link_expired(link),
@@ -1250,7 +1290,9 @@ async def subscription_single(uuid: str):
             remark=remark,
             protocol=link.get("protocol", DEFAULT_PROTOCOL),
             fingerprint=link.get("fingerprint", "chrome"),
-            port=link.get("port", SETTINGS.get("inbound_port", 443))
+            port=link.get("port", SETTINGS.get("inbound_port", 443)),
+            sni=sni,
+            security=security
         ),
         "sub_url": f"https://{get_host()}/sub/{uuid}",
     }
@@ -1269,7 +1311,9 @@ async def subscription_all(_=Depends(require_auth)):
                 port = d.get("port", SETTINGS.get("inbound_port", 443))
                 label = d.get("label", "کاربر")
                 remark = f"عقاب-{label}"
-                lines.append(generate_vless_link(uid, host, remark=remark, protocol=d.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port))
+                security = d.get("security", SETTINGS.get("default_security", "tls"))
+                sni = d.get("sni", host)
+                lines.append(generate_vless_link(uid, host, remark=remark, protocol=d.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port, sni=sni, security=security))
     content = base64.b64encode("\n".join(lines).encode()).decode()
     return Response(content=content, media_type="text/plain")
 
@@ -1297,7 +1341,9 @@ async def sub_group_subscription(uuid_key: str, request: Request):
                 port = link.get("port", SETTINGS.get("inbound_port", 443))
                 label = link.get("label", "کاربر")
                 remark = f"عقاب-{label}"
-                lines.append(generate_vless_link(lid, host, remark=remark, protocol=link.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port))
+                security = link.get("security", SETTINGS.get("default_security", "tls"))
+                sni = link.get("sni", host)
+                lines.append(generate_vless_link(lid, host, remark=remark, protocol=link.get("protocol", DEFAULT_PROTOCOL), fingerprint=fp, port=port, sni=sni, security=security))
 
     content = base64.b64encode("\n".join(lines).encode()).decode()
     return Response(
@@ -1346,6 +1392,8 @@ async def public_sub_data(uuid_key: str, request: Request):
         port = link.get("port", SETTINGS.get("inbound_port", 443))
         label = link.get("label", "کاربر")
         remark = f"عقاب-{label}"
+        security = link.get("security", SETTINGS.get("default_security", "tls"))
+        sni = link.get("sni", host)
         links_out.append({
             "uuid": lid,
             "label": link["label"],
@@ -1360,7 +1408,7 @@ async def public_sub_data(uuid_key: str, request: Request):
             "expires_at": link.get("expires_at"),
             "has_password": link.get("password_hash") is not None,
             "port": port,
-            "vless_link": generate_vless_link(lid, host, remark=remark, protocol=proto, fingerprint=fp, port=port),
+            "vless_link": generate_vless_link(lid, host, remark=remark, protocol=proto, fingerprint=fp, port=port, sni=sni, security=security),
             "sub_url": f"https://{host}/sub/{lid}",
             "connections": conn_count,
         })
