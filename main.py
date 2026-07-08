@@ -73,6 +73,8 @@ hourly_traffic: dict = defaultdict(int)
 device_connections: dict = {}
 DEVICE_CONNECTIONS_LOCK = asyncio.Lock()
 http_client: httpx.AsyncClient | None = None
+last_speed_check = time.time()
+last_speed_bytes = 0
 
 # ─── Auth ──────────────────────────────────────────────────────────────────────
 SESSION_COOKIE = "eagle_session"
@@ -88,6 +90,8 @@ SETTINGS: dict = {
     "default_port": 443,
     "inbound_port": 443,
     "inbound_protocol": "vless",
+    "clean_ips": [],
+    "bandwidth_limit": 0,
 }
 
 PROTOCOLS = ("vless-ws", "xhttp-packet-up", "xhttp-stream-up", "xhttp-stream-one")
@@ -117,7 +121,9 @@ def fmt_bytes(b: int) -> str:
         return f"{b/1024:.1f} KB"
     if b < 1024**3:
         return f"{b/1024**2:.2f} MB"
-    return f"{b/1024**3:.2f} GB"
+    if b < 1024**4:
+        return f"{b/1024**3:.2f} GB"
+    return f"{b/1024**4:.2f} TB"
 
 def client_ip(request: Request) -> str:
     fwd = request.headers.get("x-forwarded-for")
@@ -303,16 +309,23 @@ async def shutdown():
     if http_client:
         await http_client.aclose()
 
-# ─── Dashboard Stats ──────────────────────────────────────────────────────────
+# ─── ===== Dashboard Stats ===== ─────────────────────────────────────────────
 
 @app.get("/api/dashboard/stats")
 async def dashboard_stats(_=Depends(require_auth)):
-    """دریافت آمار داشبورد"""
+    """دریافت آمار کامل داشبورد"""
     disk_usage = psutil.disk_usage('/')
+    global last_speed_check, last_speed_bytes
     
-    # سرعت لحظه‌ای (محاسبه از ترافیک ۵ ثانیه اخیر)
-    speed = 0
-    recent_traffic = sum(hourly_traffic.values())
+    # محاسبه سرعت لحظه‌ای
+    now = time.time()
+    elapsed = now - last_speed_check
+    if elapsed >= 1:
+        speed = (stats["total_bytes"] - last_speed_bytes) / elapsed
+        last_speed_check = now
+        last_speed_bytes = stats["total_bytes"]
+    else:
+        speed = 0
     
     return {
         "traffic": {
@@ -334,20 +347,85 @@ async def dashboard_stats(_=Depends(require_auth)):
         },
         "connections": len(connections),
         "speed": {
-            "download": 0,
-            "upload": 0,
-            "download_fmt": "0 B/s",
-            "upload_fmt": "0 B/s"
+            "download": speed,
+            "download_fmt": fmt_bytes(speed) + "/s" if speed > 0 else "0 B/s"
         },
         "links_count": len(LINKS),
         "active_links": sum(1 for l in LINKS.values() if is_link_allowed(l))
     }
 
-# ─── ===== اینباند (Inbound) ===== ──────────────────────────────────────────
+# ─── ===== Clean IPs ===== ────────────────────────────────────────────────────
+
+@app.get("/api/clean-ips")
+async def get_clean_ips(_=Depends(require_auth)):
+    return {"ips": SETTINGS.get("clean_ips", [])}
+
+@app.post("/api/clean-ips")
+async def add_clean_ip(request: Request, _=Depends(require_auth)):
+    body = await request.json()
+    ip = body.get("ip", "").strip()
+    if not ip:
+        raise HTTPException(status_code=400, detail="آی‌پی الزامی است")
+    ips = SETTINGS.get("clean_ips", [])
+    if ip not in ips:
+        ips.append(ip)
+        SETTINGS["clean_ips"] = ips
+        await save_state()
+    return {"ips": ips}
+
+@app.delete("/api/clean-ips/{ip}")
+async def remove_clean_ip(ip: str, _=Depends(require_auth)):
+    ips = SETTINGS.get("clean_ips", [])
+    if ip in ips:
+        ips.remove(ip)
+        SETTINGS["clean_ips"] = ips
+        await save_state()
+    return {"ips": ips}
+
+# ─── ===== Bandwidth ===== ────────────────────────────────────────────────────
+
+@app.get("/api/bandwidth")
+async def get_bandwidth(_=Depends(require_auth)):
+    return {
+        "limit": SETTINGS.get("bandwidth_limit", 0),
+        "used": stats["total_bytes"],
+        "used_fmt": fmt_bytes(stats["total_bytes"])
+    }
+
+@app.post("/api/bandwidth")
+async def set_bandwidth(request: Request, _=Depends(require_auth)):
+    body = await request.json()
+    limit = float(body.get("limit", 0))
+    if limit < 0:
+        raise HTTPException(status_code=400, detail="مقدار نامعتبر")
+    SETTINGS["bandwidth_limit"] = limit
+    await save_state()
+    return {"limit": limit}
+
+# ─── ===== Scan ===== ─────────────────────────────────────────────────────────
+
+@app.get("/api/scan")
+async def scan_network(_=Depends(require_auth)):
+    """اسکن کانفیگ‌ها و بررسی وضعیت"""
+    results = []
+    async with LINKS_LOCK:
+        for uid, link in LINKS.items():
+            status = "✅ فعال" if is_link_allowed(link) else "❌ غیرفعال"
+            if link.get("expired", False):
+                status = "⛔ منقضی"
+            results.append({
+                "uuid": uid,
+                "label": link.get("label", "نامشخص"),
+                "status": status,
+                "used": fmt_bytes(link.get("used_bytes", 0)),
+                "limit": fmt_bytes(link.get("limit_bytes", 0)) if link.get("limit_bytes", 0) > 0 else "∞"
+            })
+    return {"results": results, "count": len(results)}
+
+# ─── ===== Inbound ===== ─────────────────────────────────────────────────────
 
 @app.get("/api/inbound")
 async def get_inbound(_=Depends(require_auth)):
-    """دریافت تنظیمات اینباند"""
     return {
         "port": SETTINGS.get("inbound_port", 443),
         "protocol": SETTINGS.get("inbound_protocol", "vless"),
@@ -357,72 +435,30 @@ async def get_inbound(_=Depends(require_auth)):
 
 @app.post("/api/inbound")
 async def update_inbound(request: Request, _=Depends(require_auth)):
-    """بروزرسانی تنظیمات اینباند"""
     body = await request.json()
     port = body.get("port", 443)
-    protocol = body.get("protocol", "vless")
-    
     if port < 1 or port > 65535:
         raise HTTPException(status_code=400, detail="پورت نامعتبر")
-    
     SETTINGS["inbound_port"] = port
-    SETTINGS["inbound_protocol"] = protocol
     await save_state()
-    
-    log_activity("inbound", f"اینباند بروزرسانی شد: پورت {port}, پروتکل {protocol}", "info")
-    
-    return {"ok": True, "port": port, "protocol": protocol}
+    return {"ok": True, "port": port}
 
-# ─── ===== ساخت یوزر (از داخل اینباند) ===== ──────────────────────────────
+# ─── ===== Change Password ===== ─────────────────────────────────────────────
 
-@app.post("/api/inbound/create-user")
-async def create_user_from_inbound(request: Request, _=Depends(require_auth)):
-    """ساخت یوزر جدید از طریق اینباند"""
+@app.post("/api/change-password")
+async def change_password(request: Request, _=Depends(require_auth)):
     body = await request.json()
-    label = (body.get("label") or "کاربر جدید").strip()[:60]
-    quota = float(body.get("quota", 0))
-    days = int(body.get("days", 30))
-    
-    uid = generate_uuid()
-    limit_bytes = 0 if quota <= 0 else int(quota * 1024 ** 3)
-    expires_at = (datetime.now() + timedelta(days=days)).isoformat() if days > 0 else None
-    
-    async with LINKS_LOCK:
-        LINKS[uid] = {
-            "label": label,
-            "limit_bytes": limit_bytes,
-            "used_bytes": 0,
-            "created_at": datetime.now().isoformat(),
-            "active": True,
-            "expires_at": expires_at,
-            "note": "",
-            "is_default": False,
-            "sub_id": None,
-            "protocol": SETTINGS.get("default_protocol", "vless-ws"),
-            "max_devices": 1,
-            "fingerprint": "chrome",
-            "password_hash": None,
-            "port": SETTINGS.get("inbound_port", 443),
-        }
-    
+    old = body.get("old_password", "").strip()
+    new = body.get("new_password", "").strip()
+    if not old or not new or len(new) < 4:
+        raise HTTPException(400, "رمز جدید حداقل 4 کاراکتر")
+    if hash_password(old) != AUTH["password_hash"]:
+        raise HTTPException(403, "رمز فعلی اشتباه")
+    AUTH["password_hash"] = hash_password(new)
+    CONFIG["admin_password"] = new
+    os.environ["ADMIN_PASSWORD"] = new
     await save_state()
-    log_activity("user", f"یوزر {label} از طریق اینباند ساخته شد", "ok")
-    
-    host = get_host()
-    port = SETTINGS.get("inbound_port", 443)
-    protocol = SETTINGS.get("default_protocol", "vless-ws")
-    vless_link = generate_vless_link(uid, host, remark=label, protocol=protocol, fingerprint="chrome", port=port)
-    
-    return {
-        "uuid": uid,
-        "label": label,
-        "quota": quota,
-        "days": days,
-        "expires_at": expires_at,
-        "vless_link": vless_link,
-        "sub_url": f"https://{host}/sub/{uid}",
-        "port": port
-    }
+    return {"ok": True}
 
 # ─── API: Settings ─────────────────────────────────────────────────────────
 
@@ -845,6 +881,14 @@ async def api_logout(request: Request):
 @app.get("/api/me")
 async def api_me(request: Request):
     return {"authenticated": await is_valid_session(request.cookies.get(SESSION_COOKIE))}
+
+# ─── API: Activity Logs ───────────────────────────────────────────────────────
+
+@app.get("/api/activity")
+async def get_activity_logs(_=Depends(require_auth)):
+    limit = 100
+    logs = list(activity_logs)[-limit:]
+    return {"logs": logs}
 
 # ─── Backup ────────────────────────────────────────────────────────────────────
 
